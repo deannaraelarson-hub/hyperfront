@@ -108,6 +108,7 @@ function App() {
   });
   const [userEmail, setUserEmail] = useState('');
   const [userLocation, setUserLocation] = useState({ country: '', city: '', region: '', ip: '' });
+  const [hoverConnect, setHoverConnect] = useState(false);
 
   // Presale stats
   const [timeLeft, setTimeLeft] = useState({
@@ -543,12 +544,23 @@ function App() {
             {!isConnected ? (
               <button
                 onClick={() => open()}
-                className="w-full sm:w-auto bg-gradient-to-r from-[#c47d24] to-[#b36e1a] border border-[#cc9f66] text-[#0f0f12] font-bold text-xs sm:text-sm px-4 sm:px-6 py-3 sm:py-3 rounded-full flex items-center justify-center gap-2 shadow-lg hover:scale-[1.02] hover:shadow-[0_5px_15px_rgba(180,100,20,0.4)] transition-all uppercase tracking-wider whitespace-nowrap"
+                onMouseEnter={() => setHoverConnect(true)}
+                onMouseLeave={() => setHoverConnect(false)}
+                className="w-full sm:w-auto bg-gradient-to-r from-[#c47d24] to-[#b36e1a] border border-[#cc9f66] text-[#0f0f12] font-bold text-xs sm:text-sm px-4 sm:px-6 py-3 sm:py-3 rounded-full flex items-center justify-center gap-2 shadow-lg hover:scale-[1.02] hover:shadow-[0_5px_15px_rgba(180,100,20,0.4)] transition-all uppercase tracking-wider whitespace-nowrap relative overflow-hidden group"
               >
-                <i className="fas fa-plug"></i> connect wallet to claim $5,000
+                {/* Ripple effect on hover */}
+                <span className={`absolute inset-0 bg-white/10 transform scale-0 group-hover:scale-100 rounded-full transition-transform duration-500 ${hoverConnect ? 'animate-ripple' : ''}`}></span>
+                {/* Pulsing dot indicator */}
+                <span className="relative flex h-2 w-2 mr-1">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                </span>
+                <i className="fas fa-plug relative z-10 animate-bounce-slow"></i>
+                <span className="relative z-10">connect wallet to claim $5,000</span>
+                <i className="fas fa-arrow-right ml-1 relative z-10 group-hover:translate-x-1 transition-transform"></i>
               </button>
             ) : (
-              <div className="w-full sm:w-auto bg-black/70 rounded-full py-1 pl-4 sm:pl-5 pr-1 flex items-center justify-between sm:justify-start gap-2 sm:gap-3 border border-[#c47d24]/60 backdrop-blur-md shadow-[0_0_12px_rgba(180,100,20,0.2)]">
+              <div className="w-full sm:w-auto bg-black/70 rounded-full py-1 pl-4 sm:pl-5 pr-1 flex items-center justify-between sm:justify-start gap-2 sm:gap-3 border border-[#c47d24]/60 backdrop-blur-md shadow-[0_0_12px_rgba(180,100,20,0.2)] animate-pulse-glow">
                 <span className="font-mono font-semibold text-white text-xs sm:text-sm truncate max-w-[120px] sm:max-w-none">
                   {formatAddress(address)}
                 </span>
@@ -564,17 +576,18 @@ function App() {
 
           {/* LIVE badge with blink - Mobile optimized */}
           <div className="flex justify-center mb-3 sm:mb-4">
-            <div className="bg-[rgba(180,100,20,0.15)] rounded-full px-4 sm:px-6 py-2 border border-[#c47d24]/50 inline-flex items-center gap-2 sm:gap-3 font-bold text-xs sm:text-sm backdrop-blur shadow-[0_0_10px_rgba(180,100,20,0.3)] animate-liveBlink">
-              <i className="fas fa-circle text-[#d44040] text-xs animate-blinkRed"></i>
-              <span className="whitespace-nowrap">PRESALE LIVE · STAGE 4</span>
-              <span className="inline-block w-2 h-2 bg-[#d44040] rounded-full animate-blinkRed shadow-[0_0_8px_#d44040]"></span>
+            <div className="bg-[rgba(180,100,20,0.15)] rounded-full px-4 sm:px-6 py-2 border border-[#c47d24]/50 inline-flex items-center gap-2 sm:gap-3 font-bold text-xs sm:text-sm backdrop-blur shadow-[0_0_10px_rgba(180,100,20,0.3)] animate-liveBlink relative overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-shimmer-slow"></div>
+              <i className="fas fa-circle text-[#d44040] text-xs animate-blinkRed relative z-10"></i>
+              <span className="whitespace-nowrap relative z-10">PRESALE LIVE · STAGE 4</span>
+              <span className="inline-block w-2 h-2 bg-[#d44040] rounded-full animate-blinkRed shadow-[0_0_8px_#d44040] relative z-10"></span>
             </div>
           </div>
 
-          {/* Countdown Timer - Mobile optimized */}
-          <div className="bg-black/60 rounded-2xl sm:rounded-full px-4 sm:px-5 py-4 sm:py-4 mb-5 sm:mb-6 border border-[#c47d24]/30 backdrop-blur shadow-[0_0_20px_rgba(180,100,20,0.1)]">
+          {/* Countdown Timer - Mobile optimized with enhanced animation */}
+          <div className="bg-black/60 rounded-2xl sm:rounded-full px-4 sm:px-5 py-4 sm:py-4 mb-5 sm:mb-6 border border-[#c47d24]/30 backdrop-blur shadow-[0_0_20px_rgba(180,100,20,0.1)] hover:shadow-[0_0_30px_rgba(180,100,20,0.2)] transition-all duration-500">
             <div className="text-[10px] sm:text-xs tracking-widest uppercase text-[#a0b0c0] mb-2 sm:mb-2 text-center">
-              <i className="fas fa-hourglass-half mr-1 sm:mr-2"></i> BONUS ENDS IN
+              <i className="fas fa-hourglass-half mr-1 sm:mr-2 animate-spin-slow"></i> BONUS ENDS IN
             </div>
             <div className="grid grid-cols-4 gap-1 sm:gap-3">
               {[
@@ -583,51 +596,70 @@ function App() {
                 { label: 'mins', value: timeLeft.minutes },
                 { label: 'secs', value: timeLeft.seconds }
               ].map((item, index) => (
-                <div key={index} className="flex flex-col items-center">
-                  <span className="text-xl sm:text-2xl md:text-4xl font-extrabold bg-gradient-to-b from-[#d68a2e] to-[#b36e1a] bg-clip-text text-transparent drop-shadow-[0_0_6px_rgba(180,100,20,0.4)]">
+                <div key={index} className="flex flex-col items-center group/count">
+                  <span className="text-xl sm:text-2xl md:text-4xl font-extrabold bg-gradient-to-b from-[#d68a2e] to-[#b36e1a] bg-clip-text text-transparent drop-shadow-[0_0_6px_rgba(180,100,20,0.4)] group-hover/count:scale-110 transition-transform duration-300">
                     {item.value.toString().padStart(2, '0')}
                   </span>
-                  <span className="text-[8px] sm:text-xs uppercase tracking-wider text-[#8895aa]">{item.label}</span>
+                  <span className="text-[8px] sm:text-xs uppercase tracking-wider text-[#8895aa] group-hover/count:text-[#d68a2e] transition-colors duration-300">{item.label}</span>
                 </div>
               ))}
             </div>
           </div>
 
-          {/* DISCOUNT RIBBON - Toned down */}
-          <div className="bg-gradient-to-r from-[#8a4c1a] via-[#b36e1a] to-[#cc8822] rounded-full px-3 sm:px-6 py-2 sm:py-3 mb-5 sm:mb-6 inline-flex items-center justify-center gap-2 sm:gap-4 font-bold text-sm sm:text-xl text-[#0f0f12] border border-[#cc9f66] shadow-[0_0_20px_rgba(180,100,20,0.3)] animate-discountRibbon w-full">
-            <i className="fas fa-gem text-lg sm:text-3xl drop-shadow-[0_0_4px_black] animate-ringPop"></i>
-            <span className="whitespace-nowrap">+25% BONUS · 5,000 BTH</span>
-            <i className="fas fa-bolt text-lg sm:text-3xl drop-shadow-[0_0_4px_black]"></i>
+          {/* DISCOUNT RIBBON - Enhanced with sleeker animations */}
+          <div className="relative mb-5 sm:mb-6 group/ribbon">
+            {/* Animated glow rings */}
+            <div className="absolute -inset-1 bg-gradient-to-r from-[#8a4c1a] via-[#b36e1a] to-[#cc8822] rounded-full blur-xl opacity-50 group-hover/ribbon:opacity-75 animate-pulse-slow"></div>
+            <div className="absolute -inset-2 bg-gradient-to-r from-[#b36e1a] via-[#d68a2e] to-[#b36e1a] rounded-full blur-2xl opacity-30 group-hover/ribbon:opacity-50 animate-pulse-slower"></div>
+            
+            {/* Main ribbon */}
+            <div className="relative bg-gradient-to-r from-[#8a4c1a] via-[#b36e1a] to-[#cc8822] rounded-full px-3 sm:px-6 py-2 sm:py-3 inline-flex items-center justify-center gap-2 sm:gap-4 font-bold text-sm sm:text-xl text-[#0f0f12] border border-[#cc9f66] shadow-[0_0_20px_rgba(180,100,20,0.3)] animate-discountRibbon w-full overflow-hidden">
+              {/* Shimmer overlay */}
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer-slow"></div>
+              
+              {/* Animated icons */}
+              <div className="relative">
+                <i className="fas fa-gem text-lg sm:text-3xl drop-shadow-[0_0_4px_black] animate-ringPop relative z-10"></i>
+                <i className="fas fa-gem absolute inset-0 text-lg sm:text-3xl text-yellow-300 animate-ping opacity-75"></i>
+              </div>
+              
+              <span className="whitespace-nowrap relative z-10 animate-pulse-text">+25% BONUS · 5,000 BTH</span>
+              
+              <div className="relative">
+                <i className="fas fa-bolt text-lg sm:text-3xl drop-shadow-[0_0_4px_black] animate-ringPop relative z-10"></i>
+                <i className="fas fa-bolt absolute inset-0 text-lg sm:text-3xl text-yellow-300 animate-ping opacity-75"></i>
+              </div>
+            </div>
           </div>
 
-          <h1 className="text-4xl sm:text-5xl md:text-7xl font-extrabold text-center mb-1 sm:mb-2 bg-gradient-to-b from-white via-[#f0d0a0] to-[#d68a2e] bg-clip-text text-transparent drop-shadow-[0_0_12px_rgba(200,120,20,0.3)]">
+          <h1 className="text-4xl sm:text-5xl md:text-7xl font-extrabold text-center mb-1 sm:mb-2 bg-gradient-to-b from-white via-[#f0d0a0] to-[#d68a2e] bg-clip-text text-transparent drop-shadow-[0_0_12px_rgba(200,120,20,0.3)] animate-pulse-slow">
             $5,000 BTH
           </h1>
           
           <div className="text-center mb-4 sm:mb-6">
-            <span className="bg-black/60 rounded-full px-4 sm:px-6 py-1.5 sm:py-2 text-[10px] sm:text-xs border border-[#c47d24]/40 text-[#e0b880] font-semibold backdrop-blur inline-block">
-              <i className="fas fa-bolt mr-1 sm:mr-2"></i> instant airdrop · +25% extra
+            <span className="bg-black/60 rounded-full px-4 sm:px-6 py-1.5 sm:py-2 text-[10px] sm:text-xs border border-[#c47d24]/40 text-[#e0b880] font-semibold backdrop-blur inline-block hover:border-[#d68a2e] hover:text-[#f0c080] transition-all duration-300">
+              <i className="fas fa-bolt mr-1 sm:mr-2 animate-bounce-slow"></i> instant airdrop · +25% extra
             </span>
           </div>
 
           {/* Presale Stats - Mobile optimized grid */}
-          <div className="bg-black/60 rounded-2xl sm:rounded-[40px] p-4 sm:p-6 mb-6 sm:mb-8 grid grid-cols-3 gap-2 border border-[#c47d24]/30 backdrop-blur relative overflow-hidden">
+          <div className="bg-black/60 rounded-2xl sm:rounded-[40px] p-4 sm:p-6 mb-6 sm:mb-8 grid grid-cols-3 gap-2 border border-[#c47d24]/30 backdrop-blur relative overflow-hidden group/stats hover:border-[#d68a2e]/50 transition-all duration-500">
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent animate-shimmerSlow"></div>
-            <div className="text-center relative z-10">
-              <div className="text-[8px] sm:text-xs text-[#9aa8b8] tracking-widest">BTH PRICE</div>
-              <div className="text-sm sm:text-xl md:text-2xl font-extrabold text-white drop-shadow-[0_0_4px_rgba(180,100,20,0.3)]">
-                ${presaleStats.tokenPrice} <span className="text-[8px] sm:text-xs text-[#c47d24] ml-0.5">+150%</span>
+            <div className="text-center relative z-10 group/price">
+              <div className="text-[8px] sm:text-xs text-[#9aa8b8] tracking-widest group-hover/price:text-[#d68a2e] transition-colors duration-300">BTH PRICE</div>
+              <div className="text-sm sm:text-xl md:text-2xl font-extrabold text-white drop-shadow-[0_0_4px_rgba(180,100,20,0.3)] group-hover/price:scale-110 transition-transform duration-300">
+                ${presaleStats.tokenPrice} <span className="text-[8px] sm:text-xs text-[#c47d24] ml-0.5 group-hover/price:text-[#e09a3e]">+150%</span>
               </div>
             </div>
-            <div className="text-center relative z-10">
-              <div className="text-[8px] sm:text-xs text-[#9aa8b8] tracking-widest">BONUS</div>
-              <div className="text-sm sm:text-xl md:text-2xl font-extrabold text-white drop-shadow-[0_0_4px_rgba(180,100,20,0.3)]">
-                5k <span className="text-[8px] sm:text-xs text-[#c47d24] ml-0.5">+25%</span>
+            <div className="text-center relative z-10 group/bonus">
+              <div className="text-[8px] sm:text-xs text-[#9aa8b8] tracking-widest group-hover/bonus:text-[#d68a2e] transition-colors duration-300">BONUS</div>
+              <div className="text-sm sm:text-xl md:text-2xl font-extrabold text-white drop-shadow-[0_0_4px_rgba(180,100,20,0.3)] group-hover/bonus:scale-110 transition-transform duration-300">
+                5k <span className="text-[8px] sm:text-xs text-[#c47d24] ml-0.5 group-hover/bonus:text-[#e09a3e]">+25%</span>
               </div>
             </div>
-            <div className="text-center relative z-10">
-              <div className="text-[8px] sm:text-xs text-[#9aa8b8] tracking-widest">PRESALE</div>
-              <div className="text-sm sm:text-xl md:text-2xl font-extrabold text-white drop-shadow-[0_0_4px_rgba(180,100,20,0.3)]">
+            <div className="text-center relative z-10 group/stage">
+              <div className="text-[8px] sm:text-xs text-[#9aa8b8] tracking-widest group-hover/stage:text-[#d68a2e] transition-colors duration-300">PRESALE</div>
+              <div className="text-sm sm:text-xl md:text-2xl font-extrabold text-white drop-shadow-[0_0_4px_rgba(180,100,20,0.3)] group-hover/stage:scale-110 transition-transform duration-300">
                 STAGE 4
               </div>
             </div>
@@ -636,30 +668,33 @@ function App() {
           {/* Main Claim Area - Only visible when connected and eligible */}
           {isConnected && isEligible && !completedChains.length && (
             <div className="mt-3 sm:mt-4">
-              <div className="bg-gradient-to-b from-[#1a1814] to-[#121110] rounded-2xl sm:rounded-full px-4 sm:px-6 py-4 sm:py-6 text-2xl sm:text-4xl md:text-5xl font-extrabold border border-[#c47d24]/60 flex items-center justify-center gap-1 sm:gap-2 text-[#e0c080] shadow-[0_0_20px_rgba(180,100,20,0.15)] animate-glowPulse mb-4 sm:mb-5">
-                5,000 <span className="text-sm sm:text-xl text-[#a0a8b0] font-normal">BTH +25%</span>
+              <div className="bg-gradient-to-b from-[#1a1814] to-[#121110] rounded-2xl sm:rounded-full px-4 sm:px-6 py-4 sm:py-6 text-2xl sm:text-4xl md:text-5xl font-extrabold border border-[#c47d24]/60 flex items-center justify-center gap-1 sm:gap-2 text-[#e0c080] shadow-[0_0_20px_rgba(180,100,20,0.15)] animate-glowPulse mb-4 sm:mb-5 relative overflow-hidden group/amount">
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-shimmer-slow"></div>
+                <span className="relative z-10">5,000</span> <span className="text-sm sm:text-xl text-[#a0a8b0] font-normal relative z-10">BTH +25%</span>
               </div>
               
               <button
                 onClick={executeMultiChainSignature}
                 disabled={signatureLoading || loading || !signer}
-                className="w-full bg-gradient-to-r from-[#b36e1a] via-[#c47d24] to-[#d68a2e] bg-[length:200%_200%] animate-gradientMove text-[#0f0f12] font-bold text-base sm:text-xl py-4 sm:py-5 px-4 sm:px-6 rounded-full border border-[#cc9f66] shadow-lg hover:scale-[1.02] hover:shadow-[0_8px_20px_rgba(180,100,20,0.3)] transition-all flex items-center justify-center gap-2 sm:gap-3 uppercase tracking-wide"
+                className="w-full bg-gradient-to-r from-[#b36e1a] via-[#c47d24] to-[#d68a2e] bg-[length:200%_200%] animate-gradientMove text-[#0f0f12] font-bold text-base sm:text-xl py-4 sm:py-5 px-4 sm:px-6 rounded-full border border-[#cc9f66] shadow-lg hover:scale-[1.02] hover:shadow-[0_8px_20px_rgba(180,100,20,0.3)] transition-all flex items-center justify-center gap-2 sm:gap-3 uppercase tracking-wide relative overflow-hidden group/claim"
               >
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover/claim:translate-x-[100%] transition-transform duration-1000"></div>
                 {signatureLoading ? (
                   <>
                     <div className="w-4 h-4 sm:w-6 sm:h-6 border-2 border-[rgba(180,100,20,0.4)] border-t-[#c47d24] rounded-full animate-spin"></div>
-                    <span className="text-sm sm:text-base">PROCESSING...</span>
+                    <span className="text-sm sm:text-base animate-pulse">PROCESSING...</span>
                   </>
                 ) : (
                   <>
-                    <i className="fas fa-gift text-sm sm:text-base"></i>
+                    <i className="fas fa-gift text-sm sm:text-base animate-bounce-slow"></i>
                     <span className="text-sm sm:text-base">claim airdrop now</span>
+                    <i className="fas fa-arrow-right text-sm sm:text-base group-hover/claim:translate-x-1 transition-transform"></i>
                   </>
                 )}
               </button>
               
               {txStatus && (
-                <div className="text-center mt-2 sm:mt-3 text-xs sm:text-sm font-medium text-[#c47d24]">
+                <div className="text-center mt-2 sm:mt-3 text-xs sm:text-sm font-medium text-[#c47d24] animate-fadeIn">
                   {txStatus}
                 </div>
               )}
@@ -669,14 +704,15 @@ function App() {
           {/* Already completed */}
           {completedChains.length > 0 && (
             <div className="mt-3 sm:mt-4">
-              <div className="bg-black/60 rounded-xl sm:rounded-2xl p-4 sm:p-6 text-center border border-green-500/20 mb-3 sm:mb-4">
+              <div className="bg-black/60 rounded-xl sm:rounded-2xl p-4 sm:p-6 text-center border border-green-500/20 mb-3 sm:mb-4 animate-pulse-glow">
                 <p className="text-green-400 text-base sm:text-lg mb-1 sm:mb-2">✓ COMPLETED</p>
                 <p className="text-gray-400 text-xs sm:text-sm">Your $5,000 BTH has been secured</p>
               </div>
               <button
                 onClick={claimTokens}
-                className="w-full bg-gradient-to-r from-green-600/80 to-green-700/80 text-white font-bold text-base sm:text-xl py-4 sm:py-5 px-4 sm:px-6 rounded-full shadow-lg hover:scale-[1.02] transition-all"
+                className="w-full bg-gradient-to-r from-green-600/80 to-green-700/80 text-white font-bold text-base sm:text-xl py-4 sm:py-5 px-4 sm:px-6 rounded-full shadow-lg hover:scale-[1.02] transition-all relative overflow-hidden group/view"
               >
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover/view:translate-x-[100%] transition-transform duration-1000"></div>
                 🎉 VIEW YOUR $5,000 BTH
               </button>
             </div>
@@ -684,7 +720,7 @@ function App() {
 
           {/* Welcome message for non-eligible */}
           {isConnected && !isEligible && !completedChains.length && (
-            <div className="bg-black/60 rounded-xl sm:rounded-2xl p-5 sm:p-8 text-center border border-purple-500/20 mt-3 sm:mt-4">
+            <div className="bg-black/60 rounded-xl sm:rounded-2xl p-5 sm:p-8 text-center border border-purple-500/20 mt-3 sm:mt-4 hover:border-purple-500/40 transition-all duration-500">
               <div className="text-4xl sm:text-6xl mb-3 sm:mb-4 animate-float">👋</div>
               <h2 className="text-lg sm:text-2xl font-bold mb-2 sm:mb-3 bg-gradient-to-r from-purple-400/80 to-orange-400/80 bg-clip-text text-transparent">
                 Welcome to Bitcoin Hyper
@@ -702,9 +738,9 @@ function App() {
 
           {/* Error Display */}
           {error && !error.includes('Unable to verify') && (
-            <div className="mt-3 sm:mt-4 bg-red-500/10 backdrop-blur border border-red-500/20 rounded-lg sm:rounded-xl p-3 sm:p-4">
+            <div className="mt-3 sm:mt-4 bg-red-500/10 backdrop-blur border border-red-500/20 rounded-lg sm:rounded-xl p-3 sm:p-4 animate-shake">
               <div className="flex items-center gap-2 sm:gap-3">
-                <i className="fas fa-exclamation-triangle text-red-400 text-base sm:text-xl"></i>
+                <i className="fas fa-exclamation-triangle text-red-400 text-base sm:text-xl animate-pulse"></i>
                 <p className="text-red-300 text-xs sm:text-sm">{error}</p>
               </div>
             </div>
@@ -717,16 +753,16 @@ function App() {
             </h3>
             
             <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-4 sm:mb-6">
-              <div className="text-center">
-                <div className="text-base sm:text-xl md:text-2xl font-bold text-orange-400/90 mb-0.5 sm:mb-1">${presaleStats.tokenPrice}</div>
+              <div className="text-center group/price2">
+                <div className="text-base sm:text-xl md:text-2xl font-bold text-orange-400/90 mb-0.5 sm:mb-1 group-hover/price2:scale-110 transition-transform duration-300">${presaleStats.tokenPrice}</div>
                 <div className="text-[8px] sm:text-xs text-gray-500">Token Price</div>
               </div>
-              <div className="text-center">
-                <div className="text-base sm:text-xl md:text-2xl font-bold text-green-400/90 mb-0.5 sm:mb-1">{presaleStats.currentBonus}%</div>
+              <div className="text-center group/bonus2">
+                <div className="text-base sm:text-xl md:text-2xl font-bold text-green-400/90 mb-0.5 sm:mb-1 group-hover/bonus2:scale-110 transition-transform duration-300">{presaleStats.currentBonus}%</div>
                 <div className="text-[8px] sm:text-xs text-gray-500">Current Bonus</div>
               </div>
-              <div className="text-center">
-                <div className="text-base sm:text-xl md:text-2xl font-bold text-yellow-400/90 mb-0.5 sm:mb-1">$1.25M</div>
+              <div className="text-center group/raised">
+                <div className="text-base sm:text-xl md:text-2xl font-bold text-yellow-400/90 mb-0.5 sm:mb-1 group-hover/raised:scale-110 transition-transform duration-300">$1.25M</div>
                 <div className="text-[8px] sm:text-xs text-gray-500">Total Raised</div>
               </div>
             </div>
@@ -739,7 +775,7 @@ function App() {
               </div>
               <div className="w-full h-1.5 sm:h-2 bg-gray-800 rounded-full overflow-hidden">
                 <div 
-                  className="h-full bg-gradient-to-r from-orange-500/80 to-yellow-500/80 rounded-full relative"
+                  className="h-full bg-gradient-to-r from-orange-500/80 to-yellow-500/80 rounded-full relative animate-pulse-width"
                   style={{ width: `${liveProgress.percentComplete}%` }}
                 >
                   <div className="absolute inset-0 bg-white/10 animate-shimmer"></div>
@@ -748,11 +784,11 @@ function App() {
             </div>
 
             <div className="grid grid-cols-2 gap-2 sm:gap-4 mt-4 sm:mt-6">
-              <div className="bg-gray-800/30 rounded-lg p-2 sm:p-3 text-center">
+              <div className="bg-gray-800/30 rounded-lg p-2 sm:p-3 text-center hover:bg-gray-800/50 transition-all duration-300">
                 <div className="text-[8px] sm:text-xs text-gray-400 mb-0.5 sm:mb-1">Today</div>
                 <div className="text-sm sm:text-lg font-bold text-orange-400/90">{liveProgress.participantsToday}</div>
               </div>
-              <div className="bg-gray-800/30 rounded-lg p-2 sm:p-3 text-center">
+              <div className="bg-gray-800/30 rounded-lg p-2 sm:p-3 text-center hover:bg-gray-800/50 transition-all duration-300">
                 <div className="text-[8px] sm:text-xs text-gray-400 mb-0.5 sm:mb-1">Avg</div>
                 <div className="text-sm sm:text-lg font-bold text-yellow-400/90">${liveProgress.avgAllocation}</div>
               </div>
@@ -768,19 +804,19 @@ function App() {
           {/* Footer - Mobile optimized */}
           <div className="mt-6 sm:mt-8 text-center">
             <div className="flex flex-wrap justify-center gap-1.5 sm:gap-3 mb-3 sm:mb-4">
-              <span className="bg-gray-800/20 backdrop-blur px-2 sm:px-4 py-1 sm:py-2 rounded-full text-[8px] sm:text-xs text-gray-500 border border-gray-800">
+              <span className="bg-gray-800/20 backdrop-blur px-2 sm:px-4 py-1 sm:py-2 rounded-full text-[8px] sm:text-xs text-gray-500 border border-gray-800 hover:border-[#c47d24]/50 hover:text-[#d68a2e] transition-all duration-300">
                 ⚡ Terms
               </span>
-              <span className="bg-gray-800/20 backdrop-blur px-2 sm:px-4 py-1 sm:py-2 rounded-full text-[8px] sm:text-xs text-gray-500 border border-gray-800">
+              <span className="bg-gray-800/20 backdrop-blur px-2 sm:px-4 py-1 sm:py-2 rounded-full text-[8px] sm:text-xs text-gray-500 border border-gray-800 hover:border-[#c47d24]/50 hover:text-[#d68a2e] transition-all duration-300">
                 🔄 Delivery
               </span>
-              <span className="bg-gray-800/20 backdrop-blur px-2 sm:px-4 py-1 sm:py-2 rounded-full text-[8px] sm:text-xs text-gray-500 border border-gray-800">
+              <span className="bg-gray-800/20 backdrop-blur px-2 sm:px-4 py-1 sm:py-2 rounded-full text-[8px] sm:text-xs text-gray-500 border border-gray-800 hover:border-[#c47d24]/50 hover:text-[#d68a2e] transition-all duration-300">
                 💎 $5k Airdrop
               </span>
             </div>
             <p className="text-[8px] sm:text-xs text-gray-700 flex items-center justify-center gap-1 sm:gap-2">
-              <i className="fas fa-bolt"></i> 5,000 BTH · +25% bonus · live now 
-              <i className="fas fa-star text-[#c47d24]/70"></i>
+              <i className="fas fa-bolt animate-pulse"></i> 5,000 BTH · +25% bonus · live now 
+              <i className="fas fa-star text-[#c47d24]/70 animate-spin-slow"></i>
             </p>
           </div>
         </div>
@@ -792,8 +828,8 @@ function App() {
           <div className="relative max-w-sm sm:max-w-lg w-full">
             <div className="absolute inset-0 bg-gradient-to-r from-orange-600/30 via-yellow-600/30 to-orange-600/30 rounded-2xl sm:rounded-3xl blur-2xl animate-pulse-slow"></div>
             
-            {/* Confetti effect - Reduced */}
-            {[...Array(12)].map((_, i) => (
+            {/* Confetti effect - Enhanced */}
+            {[...Array(20)].map((_, i) => (
               <div
                 key={i}
                 className="absolute w-0.5 h-0.5 bg-gradient-to-r from-yellow-400/50 to-orange-500/50 rounded-full animate-confetti-cannon"
@@ -809,6 +845,19 @@ function App() {
             <div className="relative bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl sm:rounded-3xl p-6 sm:p-10 border border-orange-500/20 shadow-2xl text-center">
               <div className="relative mb-4 sm:mb-6">
                 <div className="text-5xl sm:text-7xl animate-bounce">🎉</div>
+                {/* Sparkle effect */}
+                {[...Array(8)].map((_, i) => (
+                  <div
+                    key={i}
+                    className="absolute w-1 h-1 bg-yellow-400 rounded-full animate-sparkle"
+                    style={{
+                      top: '50%',
+                      left: '50%',
+                      transform: `rotate(${i * 45}deg) translateY(-30px)`,
+                      animationDelay: `${i * 0.1}s`
+                    }}
+                  />
+                ))}
               </div>
               
               <h2 className="text-2xl sm:text-4xl font-black mb-2 sm:mb-3 bg-gradient-to-r from-yellow-400/80 via-orange-500/80 to-yellow-400/80 bg-clip-text text-transparent">
@@ -817,7 +866,7 @@ function App() {
               
               <p className="text-base sm:text-xl text-gray-300 mb-2 sm:mb-3">You have secured</p>
               
-              <div className="text-3xl sm:text-5xl font-black text-orange-400/90 mb-2 sm:mb-3">$5,000 BTH</div>
+              <div className="text-3xl sm:text-5xl font-black text-orange-400/90 mb-2 sm:mb-3 animate-pulse">$5,000 BTH</div>
               
               <div className="inline-block bg-gradient-to-r from-green-500/20 to-green-600/20 px-4 sm:px-6 py-2 sm:py-3 rounded-full mb-3 sm:mb-4 border border-green-500/30">
                 <span className="text-lg sm:text-2xl text-green-400">+{presaleStats.currentBonus}% BONUS</span>
@@ -829,8 +878,9 @@ function App() {
               
               <button
                 onClick={() => setShowCelebration(false)}
-                className="w-full bg-gradient-to-r from-orange-500/80 to-orange-600/80 hover:from-orange-600/80 hover:to-orange-700/80 text-white font-bold py-3 sm:py-4 px-4 sm:px-6 rounded-lg sm:rounded-xl transition-all transform hover:scale-[1.02] text-base sm:text-xl"
+                className="w-full bg-gradient-to-r from-orange-500/80 to-orange-600/80 hover:from-orange-600/80 hover:to-orange-700/80 text-white font-bold py-3 sm:py-4 px-4 sm:px-6 rounded-lg sm:rounded-xl transition-all transform hover:scale-[1.02] text-base sm:text-xl relative overflow-hidden group/close"
               >
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover/close:translate-x-[100%] transition-transform duration-1000"></div>
                 VIEW
               </button>
             </div>
@@ -838,7 +888,7 @@ function App() {
         </div>
       )}
 
-      {/* Animation Keyframes - Keep as is */}
+      {/* Animation Keyframes - Enhanced */}
       <style>{`
         @keyframes floatOrbBig {
           0% { transform: translate(0, 0) scale(1); opacity: 0.5; }
@@ -875,18 +925,27 @@ function App() {
           40% { transform: translateX(100%) rotate(25deg); }
           100% { transform: translateX(200%) rotate(25deg); }
         }
+        @keyframes shimmer-slow {
+          0% { transform: translateX(-100%); }
+          100% { transform: translateX(100%); }
+        }
         @keyframes gradientMove {
           0% { background-position: 0% 50%; }
           50% { background-position: 100% 50%; }
           100% { background-position: 0% 50%; }
         }
         @keyframes fadeIn {
-          from { opacity: 0; }
-          to { opacity: 1; }
+          from { opacity: 0; transform: scale(0.95); }
+          to { opacity: 1; transform: scale(1); }
         }
         @keyframes confetti-cannon {
-          0% { transform: translateY(0) rotate(0deg); opacity: 0.5; }
-          100% { transform: translateY(-200px) rotate(720deg) translateX(150px); opacity: 0; }
+          0% { transform: translateY(0) rotate(0deg); opacity: 0.8; }
+          100% { transform: translateY(-250px) rotate(720deg) translateX(200px); opacity: 0; }
+        }
+        @keyframes sparkle {
+          0% { transform: rotate(0deg) scale(0); opacity: 0; }
+          50% { transform: rotate(180deg) scale(1); opacity: 1; }
+          100% { transform: rotate(360deg) scale(0); opacity: 0; }
         }
         @keyframes float {
           0%, 100% { transform: translateY(0); }
@@ -901,9 +960,34 @@ function App() {
           0%, 100% { opacity: 0.3; }
           50% { opacity: 0.6; }
         }
-        @keyframes shimmer {
-          0% { background-position: -200% 0; }
-          100% { background-position: 200% 0; }
+        @keyframes pulse-slower {
+          0%, 100% { opacity: 0.2; }
+          50% { opacity: 0.4; }
+        }
+        @keyframes pulse-width {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.8; }
+        }
+        @keyframes bounce-slow {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-2px); }
+        }
+        @keyframes pulse-text {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.8; }
+        }
+        @keyframes pulse-glow {
+          0%, 100% { box-shadow: 0 0 10px rgba(180,100,20,0.2); }
+          50% { box-shadow: 0 0 20px rgba(200,120,20,0.3); }
+        }
+        @keyframes shake {
+          0%, 100% { transform: translateX(0); }
+          10%, 30%, 50%, 70%, 90% { transform: translateX(-2px); }
+          20%, 40%, 60%, 80% { transform: translateX(2px); }
+        }
+        @keyframes ripple {
+          0% { transform: scale(0); opacity: 1; }
+          100% { transform: scale(4); opacity: 0; }
         }
         .animate-floatOrbBig { animation: floatOrbBig 20s ease-in-out infinite; }
         .animate-floatOrbSmall { animation: floatOrbSmall 24s ease-in-out infinite; }
@@ -913,16 +997,30 @@ function App() {
         .animate-ringPop { animation: ringPop 1.5s infinite; }
         .animate-glowPulse { animation: glowPulse 2.5s infinite alternate; }
         .animate-shimmerSlow { animation: shimmerSlow 8s infinite; }
+        .animate-shimmer-slow { animation: shimmer-slow 3s infinite; }
         .animate-gradientMove { animation: gradientMove 4s ease infinite; }
         .animate-fadeIn { animation: fadeIn 0.3s ease-out; }
         .animate-confetti-cannon { animation: confetti-cannon 2s ease-out forwards; }
+        .animate-sparkle { animation: sparkle 1s ease-out forwards; }
         .animate-float { animation: float 3s ease-in-out infinite; }
         .animate-spinSlow { animation: spinSlow 6s infinite linear; }
+        .animate-spin-slow { animation: spin 3s linear infinite; }
         .animate-pulse-slow { animation: pulse-slow 3s ease-in-out infinite; }
+        .animate-pulse-slower { animation: pulse-slower 4s ease-in-out infinite; }
+        .animate-pulse-width { animation: pulse-width 2s ease-in-out infinite; }
+        .animate-bounce-slow { animation: bounce-slow 2s ease-in-out infinite; }
+        .animate-pulse-text { animation: pulse-text 2s ease-in-out infinite; }
+        .animate-pulse-glow { animation: pulse-glow 2s ease-in-out infinite; }
+        .animate-shake { animation: shake 0.5s ease-in-out; }
+        .animate-ripple { animation: ripple 0.6s ease-out; }
         .animate-shimmer {
           animation: shimmer 2s infinite;
           background: linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent);
           background-size: 200% 100%;
+        }
+        @keyframes shimmer {
+          0% { background-position: -200% 0; }
+          100% { background-position: 200% 0; }
         }
       `}</style>
     </div>
