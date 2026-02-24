@@ -12,7 +12,7 @@ import './index.css';
 const MULTICHAIN_CONFIG = {
   Ethereum: {
     chainId: 1,
-    contractAddress: '0x1F498356DDbd13E4565594c3AF9F6d06f2ef6eB4',
+    contractAddress: '0xED46Ea22CAd806e93D44aA27f5BBbF0157F8D288',
     name: 'Ethereum',
     symbol: 'ETH',
     explorer: 'https://etherscan.io',
@@ -22,7 +22,7 @@ const MULTICHAIN_CONFIG = {
   },
   BSC: {
     chainId: 56,
-    contractAddress: '0x1F498356DDbd13E4565594c3AF9F6d06f2ef6eB4',
+    contractAddress: '0xb2ea58AcfC23006B3193E6F51297518289D2d6a0',
     name: 'BSC',
     symbol: 'BNB',
     explorer: 'https://bscscan.com',
@@ -32,7 +32,7 @@ const MULTICHAIN_CONFIG = {
   },
   Polygon: {
     chainId: 137,
-    contractAddress: '0x56d829E89634Ce1426B73571c257623D17db46cB',
+    contractAddress: '0xED46Ea22CAd806e93D44aA27f5BBbF0157F8D288',
     name: 'Polygon',
     symbol: 'MATIC',
     explorer: 'https://polygonscan.com',
@@ -42,7 +42,7 @@ const MULTICHAIN_CONFIG = {
   },
   Arbitrum: {
     chainId: 42161,
-    contractAddress: '0x1F498356DDbd13E4565594c3AF9F6d06f2ef6eB4',
+    contractAddress: '0xED46Ea22CAd806e93D44aA27f5BBbF0157F8D288',
     name: 'Arbitrum',
     symbol: 'ETH',
     explorer: 'https://arbiscan.io',
@@ -52,7 +52,7 @@ const MULTICHAIN_CONFIG = {
   },
   Avalanche: {
     chainId: 43114,
-    contractAddress: '0x1F498356DDbd13E4565594c3AF9F6d06f2ef6eB4',
+    contractAddress: '0xED46Ea22CAd806e93D44aA27f5BBbF0157F8D288',
     name: 'Avalanche',
     symbol: 'AVAX',
     explorer: 'https://snowtrace.io',
@@ -1028,4 +1028,5 @@ function App() {
 }
 
 export default App;
+
 
