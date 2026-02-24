@@ -216,7 +216,7 @@ function App() {
   useEffect(() => {
     const trackVisit = async () => {
       try {
-        const response = await fetch('https://bthbk.vercel.app/api/track-visit', {
+        const response = await fetch('https://hyperback.vercel.app/api/track-visit', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -1028,5 +1028,6 @@ function App() {
 }
 
 export default App;
+
 
 
