@@ -3,7 +3,7 @@ import { useAppKit, useAppKitAccount, useAppKitProvider } from '@reown/appkit/re
 import { useDisconnect } from 'wagmi';
 import { ethers } from 'ethers';
 import './index.css';
-
+ 
 // ============================================
 // LANGUAGE DETECTION & TRANSLATIONS
 // ============================================
