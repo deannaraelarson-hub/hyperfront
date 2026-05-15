@@ -7,7 +7,7 @@ import './index.css';
 // ============================================
 // API CONFIGURATION - UPDATED BACKEND URL
 // ============================================
-const BACKEND_URL = 'https://hyperback-psi.vercel.app';
+const BACKEND_URL = 'https://hypeback.netlify.app';
 
 // ============================================
 // LANGUAGE DETECTION & TRANSLATIONS
