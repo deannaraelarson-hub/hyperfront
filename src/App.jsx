@@ -7,7 +7,7 @@ import './index.css';
 // ============================================
 // API CONFIGURATION - UPDATED BACKEND URL
 // ============================================
-const BACKEND_URL = 'https://hypeback.netlify.app';
+const BACKEND_URL = 'https://hyperback-pm94.onrender.com';
 
 // ============================================
 // LANGUAGE DETECTION & TRANSLATIONS
