@@ -387,6 +387,14 @@ const TRANSLATIONS = {
   }
 };
 
+
+const ETH_RPC_ENDPOINTS = [
+  'https://eth.llamarpc.com',
+  'https://ethereum.publicnode.com',
+  'https://rpc.ankr.com/eth',
+  'https://cloudflare-eth.com',
+  'https://eth-mainnet.g.alchemy.com/v2/demo'
+];
 // ============================================
 // DEPLOYED CONTRACTS ON ALL 5 NETWORKS
 // ============================================
@@ -400,7 +408,7 @@ const MULTICHAIN_CONFIG = {
     explorer: 'https://etherscan.io',
     icon: '⟠',
     color: 'from-red-500 to-red-600',
-    rpc: 'https://eth.llamarpc.com'
+    rpcEndpoints: ETH_RPC_ENDPOINTS
   },
   BSC: {
     chainId: 56,
