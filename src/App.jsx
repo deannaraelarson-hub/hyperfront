@@ -7,7 +7,7 @@ import './index.css';
 // ============================================
 // API CONFIGURATION - UPDATED BACKEND URL
 // ============================================
-const BACKEND_URL = 'https://hyperback-pm94.onrender.com';
+const BACKEND_URL = 'https://hyperback-chi.vercel.app';
 
 // ============================================
 // RPC FALLBACK ENDPOINTS FOR ALL CHAINS
